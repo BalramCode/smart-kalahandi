@@ -7,28 +7,49 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { loginUser } from "../services/auth.js";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("student");
-  const { login, isLoading } = useAuth();
+  const { isLoading } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      toast.error("Please fill all fields");
-      return;
-    }
-    try {
-      await login(email, password, role);
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!email || !password) {
+    toast.error("Please fill all fields");
+    return;
+  }
+
+  try {
+    const res = await loginUser(email, password);
+    console.log(res);
+
+    if (res.success) {
+      localStorage.setItem("token", res.data.token);
+
       toast.success("Welcome back!");
-      navigate(role === "teacher" ? "/teacher/dashboard" : "/student/scanner");
-    } catch {
-      toast.error("Login failed");
+
+      window.location.href =
+        res.data.user.role === "teacher"
+          ? "/teacher/dashboard"
+          : "/student/scanner";
+
+    } else {
+      toast.error(res.message);
     }
-  };
+
+  } catch (error) {
+    toast.error("Login failed");
+  }
+};
+
+
+
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 gradient-bg">
@@ -51,11 +72,10 @@ const Login = () => {
             <button
               key={r}
               onClick={() => setRole(r)}
-              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 capitalize ${
-                role === r
+              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 capitalize ${role === r
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               {r}
             </button>

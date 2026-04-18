@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect } from "react";
+import axios from "axios";
 
 export type UserRole = "student" | "teacher";
 
 export interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   role: UserRole;
@@ -12,10 +13,8 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: UserRole) => Promise<void>;
-  register: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
-  logout: () => void;
   isLoading: boolean;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -27,43 +26,43 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem("attendance_user");
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const login = useCallback(async (email: string, _password: string, role: UserRole) => {
-    setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    const u: User = {
-      id: crypto.randomUUID(),
-      name: role === "teacher" ? "Dr. Sharma" : "Rahul Patel",
-      email,
-      role,
-      department: "BSc Computer Science",
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/auth/me", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setUser(res.data.data.user);
+      } catch (err) {
+        setUser(null);
+      } finally {
+        setIsLoading(false);
+      }
     };
-    localStorage.setItem("attendance_user", JSON.stringify(u));
-    setUser(u);
-    setIsLoading(false);
-  }, []);
 
-  const register = useCallback(async (name: string, email: string, _password: string, role: UserRole) => {
-    setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    const u: User = { id: crypto.randomUUID(), name, email, role, department: "BSc Computer Science" };
-    localStorage.setItem("attendance_user", JSON.stringify(u));
-    setUser(u);
-    setIsLoading(false);
-  }, []);
+    if (token) {
+      fetchUser();
+    } else {
+      setIsLoading(false);
+    }
+  }, [token]);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem("attendance_user");
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
     setUser(null);
-  }, []);
+  };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, isLoading, logout }}>
       {children}
     </AuthContext.Provider>
   );
