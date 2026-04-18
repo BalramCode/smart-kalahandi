@@ -13,6 +13,10 @@ import Sessions from "./pages/teacher/Sessions";
 import Scanner from "./pages/student/Scanner";
 import StudentDashboard from "./pages/student/Dashboard";
 import NotFound from "./pages/NotFound";
+import Batches from "./pages/teacher/Batches"
+import Semesters from "./pages/teacher/Semesters"
+import SessionRoom from "./pages/teacher/SessionRoom"
+import Subjects from "./pages/teacher/Subjects"
 
 const queryClient = new QueryClient();
 
@@ -28,6 +32,7 @@ const ProtectedRoute = ({ children, role }) => {
   if (!user) {
     return <Navigate to="/login" replace />;
   }
+  
 
   if (role && user.role !== role) {
     return (
@@ -78,6 +83,7 @@ const App = () => (
           <Route path="/register" element={<AuthRedirect><Register /></AuthRedirect>} />
 
           {/* Teacher */}
+          {/* Teacher */}
           <Route
             path="/teacher"
             element={
@@ -86,10 +92,22 @@ const App = () => (
               </ProtectedRoute>
             }
           >
+            {/* Dashboard */}
             <Route path="dashboard" element={<TeacherDashboard />} />
-            <Route path="sessions" element={<Sessions />} />
-            <Route path="qr-session" element={<QRSession />} />
+
+            {/* Batches */}
+            <Route path="batches" element={<Batches />} />
+
+            {/* Semesters (inside batch) */}
+            <Route path="batches/:batchId" element={<Semesters />} />
+
+            {/* Subjects (inside semester) */}
+            <Route path="batches/:batchId/:semId" element={<Subjects />} />
+
+            {/* Session Room (QR + attendance) */}
+            <Route path="session/:sessionId" element={<SessionRoom />} />
           </Route>
+
 
           {/* Student */}
           <Route

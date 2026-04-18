@@ -1,4 +1,5 @@
-import { LayoutDashboard, CalendarDays, LogOut } from "lucide-react";
+import { LayoutDashboard, Layers, LogOut } from "lucide-react";
+
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,8 +19,9 @@ import { Button } from "@/components/ui/button";
 
 const items = [
   { title: "Dashboard", url: "/teacher/dashboard", icon: LayoutDashboard },
-  { title: "Sessions", url: "/teacher/sessions", icon: CalendarDays },
+  { title: "Batches", url: "/teacher/batches", icon: Layers },
 ];
+
 
 const TeacherSidebar = () => {
   const { state } = useSidebar();
@@ -36,7 +38,7 @@ const TeacherSidebar = () => {
             <SidebarMenu>
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={location.pathname === item.url}>
+                  <SidebarMenuButton asChild isActive={location.pathname.startsWith(item.url)}>
                     <NavLink to={item.url} end activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}

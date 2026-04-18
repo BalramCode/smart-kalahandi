@@ -15,7 +15,14 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   logout: () => void;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole
+  ) => Promise<void>;
 }
+
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -26,6 +33,36 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const register = async (
+  name: string,
+  email: string,
+  password: string,
+  role: UserRole
+) => {
+  try {
+    setIsLoading(true);
+
+    const res = await axios.post("http://localhost:5000/api/auth/register", {
+      name,
+      email,
+      password,
+      role,
+    });
+
+    const { token, user } = res.data.data;
+
+    localStorage.setItem("token", token);
+    localStorage.setItem("role", user.role);
+
+    setUser(user);
+  } catch (err) {
+    console.error(err);
+    throw err; // important so frontend catch works
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -62,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, logout, register }}>
       {children}
     </AuthContext.Provider>
   );

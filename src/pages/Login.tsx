@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { loginUser } from "../services/auth.js";
+import { GoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -113,6 +115,33 @@ const handleSubmit = async (e) => {
             {isLoading ? <LoadingSpinner /> : "Sign In"}
           </Button>
         </form>
+
+        <div className="mt-4">
+  <GoogleLogin
+    onSuccess={async (credentialResponse) => {
+      try {
+        const res = await axios.post("http://localhost:5000/api/auth/google", {
+          token: credentialResponse.credential,
+          role: role,
+        });
+
+        localStorage.setItem("token", res.data.data.token);
+
+        window.location.href =
+          res.data.data.user.role === "teacher"
+            ? "/teacher/dashboard"
+            : "/student/scanner";
+
+      } catch (err) {
+        console.log(err);
+      }
+    }}
+    onError={() => {
+      console.log("Login Failed");
+    }}
+  />
+</div>
+
 
         <p className="text-center text-sm text-muted-foreground mt-6">
           Don't have an account?{" "}

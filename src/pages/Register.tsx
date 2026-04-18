@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { GoogleLogin } from '@react-oauth/google';
+import axios from 'axios';
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -26,9 +28,11 @@ const Register = () => {
       await register(name, email, password, role);
       toast.success("Account created!");
       navigate(role === "teacher" ? "/teacher/dashboard" : "/student/scanner");
-    } catch {
-      toast.error("Registration failed");
-    }
+    } catch (err: any) {
+  console.log(err); // VERY IMPORTANT
+  toast.error(err?.response?.data?.message || "Registration failed");
+}
+
   };
 
   return (
@@ -79,6 +83,32 @@ const Register = () => {
             {isLoading ? <LoadingSpinner /> : "Create Account"}
           </Button>
         </form>
+        <div className="mt-4">
+  <GoogleLogin
+    onSuccess={async (credentialResponse) => {
+      try {
+        const res = await axios.post("http://localhost:5000/api/auth/google", {
+          token: credentialResponse.credential,
+          role: role,
+        });
+
+        localStorage.setItem("token", res.data.data.token);
+
+        window.location.href =
+          res.data.data.user.role === "teacher"
+            ? "/teacher/dashboard"
+            : "/student/scanner";
+
+      } catch (err) {
+        console.log(err);
+      }
+    }}
+    onError={() => {
+      console.log("Login Failed");
+    }}
+  />
+</div>
+
 
         <p className="text-center text-sm text-muted-foreground mt-6">
           Already have an account?{" "}
