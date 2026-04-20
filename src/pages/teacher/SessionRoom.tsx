@@ -3,162 +3,255 @@ import { useParams, useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
 import { 
   ArrowLeft, 
-  Share2, 
-  Users, 
   Clock, 
+  Users, 
   CheckCircle2, 
+  Share2, 
   Copy, 
-  MessageCircle, 
-  Download,
-  ShieldCheck
+  Send, 
+  LayoutDashboard, 
+  ExternalLink,
+  ShieldCheck // <--- MAKE SURE THIS IS HERE
 } from "lucide-react";
+import axios from "axios";
 
 const Session = () => {
-  const { sessionId } = useParams();
+  const { subjectId } = useParams();
   const navigate = useNavigate();
-  const [attendeeCount, setAttendeeCount] = useState(0);
-  const [isCopied, setIsCopied] = useState(false);
 
-  // The link students will scan (adjust to your production domain)
-  const attendanceLink = `https://your-app.com/mark-attendance/${sessionId}`;
+  const [session, setSession] = useState(null);
+  const [timeLeft, setTimeLeft] = useState("");
+  const [attendees, setAttendees] = useState([]);
+  const [copied, setCopied] = useState(false);
 
-  // Simulate real-time attendance updates
+  // 1. Session Initialization
   useEffect(() => {
-    const interval = setInterval(() => {
-      setAttendeeCount(prev => prev + (Math.random() > 0.7 ? 1 : 0));
-    }, 3000);
+    const initSession = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.post(
+          "http://localhost:5000/api/sessions/create",
+          { subject: subjectId },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setSession(res.data.data);
+      } catch (err) {
+        fetchActiveSession();
+      }
+    };
+
+    const fetchActiveSession = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get("http://localhost:5000/api/sessions/active", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setSession(res.data.data);
+      } catch (err) {
+        navigate("/teacher/batches");
+      }
+    };
+
+    initSession();
+  }, [subjectId, navigate]);
+
+  // 2. Poll for Live Attendance
+  useEffect(() => {
+    if (!session?._id) return;
+    const fetchAttendees = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(`http://localhost:5000/api/attendance/session/${session._id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setAttendees(res.data.data);
+      } catch (err) {
+        console.error("Live feed error:", err);
+      }
+    };
+    const interval = setInterval(fetchAttendees, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [session?._id]);
 
-  const handleCopyLink = () => {
+  // 3. Timer Logic
+  useEffect(() => {
+    if (!session?.expiresAt) return;
+    const timer = setInterval(() => {
+      const remaining = Math.round((new Date(session.expiresAt).getTime() - Date.now()) / 1000);
+      if (remaining <= 0) {
+        setTimeLeft("EXPIRED");
+        clearInterval(timer);
+      } else {
+        const mins = Math.floor(remaining / 60);
+        const secs = remaining % 60;
+        setTimeLeft(`${mins}:${secs < 10 ? '0' : ''}${secs}`);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [session]);
+
+  const attendanceLink = `${window.location.origin}/mark-attendance/${session?.qrToken}`;
+
+  const copyLink = () => {
     navigator.clipboard.writeText(attendanceLink);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
-  const shareToWhatsApp = () => {
-    const message = encodeURIComponent(`Class is live! Scan this QR or click the link to mark your attendance: ${attendanceLink}`);
-    window.open(`https://wa.me/?text=${message}`, '_blank');
+  const shareWhatsApp = () => {
+    const text = `📢 *Attendance is Live!*\n\nClass: ${session?.subject?.name || 'Current Session'}\nClick the link below to mark your attendance:\n🔗 ${attendanceLink}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
+
+  if (!session) return (
+    <div className="h-screen flex flex-col items-center justify-center bg-slate-50">
+      <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p className="font-bold text-slate-600 animate-pulse">Initializing Secure Session...</p>
+    </div>
+  );
 
   return (
-    <div className="w-full h-full flex-1 p-6 md:p-10 bg-slate-50/50 overflow-y-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-all"
-        >
-          <ArrowLeft size={20} />
-          <span className="font-medium">End Session</span>
-        </button>
+    <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 lg:p-12">
+      <div className="max-w-6xl mx-auto">
         
-        <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full border border-emerald-100 animate-pulse">
-          <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-          <span className="text-sm font-bold uppercase tracking-wider">Live Session</span>
-        </div>
-      </div>
+        {/* Top Navbar */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <div>
+            <button 
+              onClick={() => navigate(-1)} 
+              className="flex items-center gap-2 text-slate-500 hover:text-red-600 transition-colors font-semibold mb-2"
+            >
+              <ArrowLeft size={18} /> End Session
+            </button>
+            <h1 className="text-3xl font-black text-slate-900">Live Attendance <span className="text-indigo-600">.</span></h1>
+          </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
-        {/* Left Column: QR Code Hero Section */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-indigo-100 border border-slate-100 text-center relative overflow-hidden">
-            {/* Background Decor */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-bl-full opacity-50 -mr-16 -mt-16"></div>
-            
-            <h2 className="text-3xl font-black text-slate-800 mb-2">Scan for Attendance</h2>
-            <p className="text-slate-500 mb-10">Students should point their camera at this screen</p>
-
-            <div className="inline-block p-6 bg-white rounded-3xl shadow-2xl border-4 border-slate-50 mb-10 group transition-transform hover:scale-105">
-              <QRCode 
-                value={attendanceLink} 
-                size={220}
-                level="H"
-                className="rounded-lg"
-              />
+          <div className="flex items-center gap-3">
+            <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl shadow-sm border bg-white ${timeLeft === "EXPIRED" ? "border-red-200" : "border-indigo-100"}`}>
+              <Clock className={timeLeft === "EXPIRED" ? "text-red-500" : "text-indigo-600"} size={20} />
+              <span className={`text-2xl font-black tabular-nums ${timeLeft === "EXPIRED" ? "text-red-600" : "text-slate-800"}`}>
+                {timeLeft}
+              </span>
             </div>
+          </div>
+        </div>
 
-            <div className="flex flex-wrap justify-center gap-4">
-              <button 
-                onClick={shareToWhatsApp}
-                className="flex items-center gap-2 bg-[#25D366] hover:bg-[#20ba56] text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg active:scale-95"
-              >
-                <MessageCircle size={20} />
-                Share to WhatsApp
-              </button>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* Left Column: QR & Sharing */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-slate-200/50 border border-white relative overflow-hidden text-center">
+              {/* Decorative background pulse */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-indigo-50 rounded-full blur-3xl opacity-50 -z-10"></div>
               
-              <button 
-                onClick={handleCopyLink}
-                className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg active:scale-95"
-              >
-                {isCopied ? <CheckCircle2 size={20} /> : <Copy size={20} />}
-                {isCopied ? "Copied!" : "Copy Link"}
-              </button>
-            </div>
-          </div>
+              <h2 className="text-2xl font-bold text-slate-800 mb-2">Student Check-in</h2>
+              <p className="text-slate-400 mb-8 font-medium">Display this QR or share the link with your students</p>
 
-          {/* Session Details Card */}
-          <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-wrap gap-8 justify-center md:justify-start">
-             <div className="flex items-center gap-3">
-                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl"><Clock size={20}/></div>
-                <div>
-                  <p className="text-xs text-slate-400 font-bold uppercase">Started At</p>
-                  <p className="font-bold text-slate-700">10:45 AM</p>
-                </div>
-             </div>
-             <div className="flex items-center gap-3">
-                <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl"><ShieldCheck size={20}/></div>
-                <div>
-                  <p className="text-xs text-slate-400 font-bold uppercase">Security</p>
-                  <p className="font-bold text-slate-700">Dynamic QR</p>
-                </div>
-             </div>
-          </div>
-        </div>
-
-        {/* Right Column: Real-time Stats */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-[2.5rem] p-8 text-white shadow-xl">
-            <div className="flex justify-between items-start mb-10">
-              <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md">
-                <Users size={28} />
-              </div>
-              <span className="bg-white/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest backdrop-blur-md">Real-time</span>
-            </div>
-            <h3 className="text-5xl font-black mb-2">{attendeeCount}</h3>
-            <p className="text-indigo-100 font-medium">Students marked present</p>
-            
-            <div className="mt-8 h-2 bg-white/10 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-white transition-all duration-1000 ease-out" 
-                style={{ width: `${Math.min((attendeeCount / 50) * 100, 100)}%` }}
-              ></div>
-            </div>
-            <p className="mt-3 text-xs text-indigo-200">Goal: 50 Students</p>
-          </div>
-
-          <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm">
-            <h4 className="font-bold text-slate-800 mb-4 px-2">Recent Joins</h4>
-            <div className="space-y-3">
-              {[1, 2, 3].map((_, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center font-bold text-slate-400 text-xs">
-                      UN
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-slate-700">Student ID: ...{230 + i}</p>
-                      <p className="text-[10px] text-slate-400 font-medium">Just now</p>
-                    </div>
+              <div className="bg-slate-50 inline-block p-6 rounded-[2.5rem] border-4 border-white shadow-inner mb-8 transition-transform hover:scale-[1.02] duration-300">
+                {timeLeft !== "EXPIRED" ? (
+                  <QRCode 
+                    value={attendanceLink} 
+                    size={220} 
+                    level="H"
+                    fgColor="#1e293b"
+                    className="rounded-lg"
+                  />
+                ) : (
+                  <div className="w-[220px] h-[220px] flex flex-col items-center justify-center text-red-500 bg-red-50 rounded-3xl border-2 border-dashed border-red-200">
+                    <Clock size={48} className="mb-2" />
+                    <span className="font-black">SESSION ENDED</span>
                   </div>
-                  <CheckCircle2 size={18} className="text-emerald-500" />
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto">
+                <button 
+                  onClick={shareWhatsApp}
+                  className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba59] text-white py-4 rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-green-100"
+                >
+                  <Send size={18} /> Share to Group
+                </button>
+                <button 
+                  onClick={copyLink}
+                  className={`flex items-center justify-center gap-2 py-4 rounded-2xl font-bold transition-all active:scale-95 border-2 ${
+                    copied ? "bg-emerald-50 border-emerald-500 text-emerald-600" : "bg-white border-slate-100 text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {copied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
+                  {copied ? "Copied!" : "Copy Link"}
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-indigo-600 rounded-[2rem] p-6 text-white flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-white/10 rounded-xl">
+                  <ShieldCheck size={24} />
                 </div>
-              ))}
+                <div>
+                  <p className="text-indigo-100 text-xs font-bold uppercase tracking-wider">Security Active</p>
+                  <p className="font-medium text-sm">Anti-proxy & Location verification enabled</p>
+                </div>
+              </div>
+              <ExternalLink size={20} className="opacity-50" />
             </div>
           </div>
-        </div>
 
+          {/* Right Column: Stats & Logs */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Stats Card */}
+            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+              <Users className="text-indigo-400 mb-4 group-hover:scale-110 transition-transform" size={40} />
+              <div className="relative z-10">
+                <h3 className="text-7xl font-black mb-1">{attendees.length}</h3>
+                <p className="text-indigo-300 font-bold uppercase text-xs tracking-widest">Verified Attendees</p>
+              </div>
+              {/* Decorative Circle */}
+              <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl"></div>
+            </div>
+
+            {/* Live Feed */}
+            <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm flex flex-col h-[400px]">
+              <div className="flex items-center justify-between mb-6">
+                <h4 className="font-bold text-slate-800 flex items-center gap-2">
+                  Live Activity <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
+                </h4>
+                <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">Recent</span>
+              </div>
+              
+              <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar">
+                {attendees.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-3">
+                      <Users size={24} />
+                    </div>
+                    <p className="text-slate-400 text-sm font-medium">Waiting for students to join...</p>
+                  </div>
+                ) : (
+                  attendees.map((a, i) => (
+                    <div 
+                      key={i} 
+                      className="flex items-center justify-between bg-slate-50 hover:bg-indigo-50/50 p-4 rounded-[1.25rem] border border-transparent hover:border-indigo-100 transition-all animate-in slide-in-from-right-4 duration-300"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                          {a.studentId?.name?.charAt(0) || "S"}
+                        </div>
+                        <span className="font-bold text-slate-700 text-sm">{a.studentId?.name || "Anonymous Student"}</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-emerald-100 px-2 py-1 rounded-lg">
+                        <CheckCircle2 className="text-emerald-600" size={14} />
+                        <span className="text-[10px] font-black text-emerald-700 uppercase">Verified</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );

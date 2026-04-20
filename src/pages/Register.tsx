@@ -14,25 +14,32 @@ const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rollNo, setRollNo] = useState(""); // New State for Roll Number
   const [role, setRole] = useState<UserRole>("student");
+  
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log("Sending:", { name, email, password, role, rollNo });
     e.preventDefault();
-    if (!name || !email || !password) {
-      toast.error("Please fill all fields");
+    
+    // Validation: Only require rollNo if user is a student
+    if (!name || !email || !password || (role === "student" && !rollNo)) {
+      toast.error("Please fill all required fields");
       return;
     }
+
     try {
-      await register(name, email, password, role);
+      // Assuming you update your useAuth register function to accept rollNo as the 5th argument
+      await register(name, email, password, role, rollNo); 
+      
       toast.success("Account created!");
       navigate(role === "teacher" ? "/teacher/dashboard" : "/student/scanner");
     } catch (err: any) {
-  console.log(err); // VERY IMPORTANT
-  toast.error(err?.response?.data?.message || "Registration failed");
-}
-
+      console.log(err);
+      toast.error(err?.response?.data?.message || "Registration failed");
+    }
   };
 
   return (
@@ -71,6 +78,21 @@ const Register = () => {
             <Label htmlFor="name">Full Name</Label>
             <Input id="name" placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} className="h-11 rounded-xl bg-background" />
           </div>
+
+          {/* Conditional Roll Number Field */}
+          {role === "student" && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <Label htmlFor="rollNo">Roll Number</Label>
+              <Input 
+                id="rollNo" 
+                placeholder="e.g. CS202601" 
+                value={rollNo} 
+                onChange={(e) => setRollNo(e.target.value)} 
+                className="h-11 rounded-xl bg-background border-primary/20 focus:border-primary" 
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" placeholder="you@mmu.ac.in" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl bg-background" />
@@ -79,36 +101,32 @@ const Register = () => {
             <Label htmlFor="password">Password</Label>
             <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className="h-11 rounded-xl bg-background" />
           </div>
+
           <Button type="submit" disabled={isLoading} className="w-full h-11 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm hover-lift">
             {isLoading ? <LoadingSpinner /> : "Create Account"}
           </Button>
         </form>
-        <div className="mt-4">
-  <GoogleLogin
-    onSuccess={async (credentialResponse) => {
-      try {
-        const res = await axios.post("http://localhost:5000/api/auth/google", {
-          token: credentialResponse.credential,
-          role: role,
-        });
 
-        localStorage.setItem("token", res.data.data.token);
+        <div className="mt-4 flex justify-center">
+          <GoogleLogin
+            onSuccess={async (credentialResponse) => {
+              try {
+                const res = await axios.post("http://localhost:5000/api/auth/google", {
+                  token: credentialResponse.credential,
+                  role: role,
+                  // If using Google, you might need a secondary step to collect rollNo if it's missing
+                });
 
-        window.location.href =
-          res.data.data.user.role === "teacher"
-            ? "/teacher/dashboard"
-            : "/student/scanner";
-
-      } catch (err) {
-        console.log(err);
-      }
-    }}
-    onError={() => {
-      console.log("Login Failed");
-    }}
-  />
-</div>
-
+                localStorage.setItem("token", res.data.data.token);
+                window.location.href = res.data.data.user.role === "teacher" ? "/teacher/dashboard" : "/student/scanner";
+              } catch (err) {
+                console.log(err);
+                toast.error("Google login failed");
+              }
+            }}
+            onError={() => console.log("Login Failed")}
+          />
+        </div>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
           Already have an account?{" "}

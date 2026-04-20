@@ -8,6 +8,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  rollNo?: string; // Added rollNo to the User interface
   department?: string;
 }
 
@@ -19,10 +20,10 @@ interface AuthContextType {
     name: string,
     email: string,
     password: string,
-    role: UserRole
+    role: UserRole,
+    rollNo?: string // Added rollNo to register arguments
   ) => Promise<void>;
 }
-
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -33,38 +34,40 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const register = async (
-  name: string,
-  email: string,
-  password: string,
-  role: UserRole
-) => {
-  try {
-    setIsLoading(true);
-
-    const res = await axios.post("http://localhost:5000/api/auth/register", {
-      name,
-      email,
-      password,
-      role,
-    });
-
-    const { token, user } = res.data.data;
-
-    localStorage.setItem("token", token);
-    localStorage.setItem("role", user.role);
-
-    setUser(user);
-  } catch (err) {
-    console.error(err);
-    throw err; // important so frontend catch works
-  } finally {
-    setIsLoading(false);
-  }
-};
-
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  const register = async (
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole,
+    rollNo?: string // Catch the rollNo here
+  ) => {
+    try {
+      setIsLoading(true);
+
+      const res = await axios.post("http://localhost:5000/api/auth/register", {
+        name,
+        email,
+        password,
+        role,
+        rollNo: role === 'student' ? rollNo : null, // Send rollNo to the backend
+      });
+
+      const { token, user: userData } = res.data.data;
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("role", userData.role);
+
+      setUser(userData);
+    } catch (err) {
+      console.error("Registration error:", err);
+      throw err; 
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const token = localStorage.getItem("token");
 
@@ -79,6 +82,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setUser(res.data.data.user);
       } catch (err) {
+        console.error("Fetch user error:", err);
+        localStorage.removeItem("token"); // Clear invalid token
         setUser(null);
       } finally {
         setIsLoading(false);

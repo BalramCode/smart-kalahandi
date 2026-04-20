@@ -105,7 +105,7 @@ const App = () => (
             <Route path="batches/:batchId/:semId" element={<Subjects />} />
 
             {/* Session Room (QR + attendance) */}
-            <Route path="session/:sessionId" element={<SessionRoom />} />
+            <Route path="session/:subjectId" element={<SessionRoom />} />
           </Route>
 
 
