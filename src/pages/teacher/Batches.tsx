@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, FolderOpen, Calendar, Users, X } from "lucide-react";
 import axios from "axios";
-
+import api from "../../services/api"
 const Batches = () => {
   const navigate = useNavigate();
   const [batches, setBatches] = useState([]);
@@ -17,7 +17,8 @@ const Batches = () => {
   useEffect(() => {
     const fetchBatches = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/batches");
+        // const res = await axios.get("http://localhost:5000/api/batches");
+        const res = await api.get("/batches");
         setBatches(res.data);
       } catch (err) {
         console.error("Error fetching batches:", err);
@@ -34,7 +35,7 @@ const Batches = () => {
     if (!startYear || !endYear) return;
 
     try {
-      const res = await axios.post("http://localhost:5000/api/batches", {
+    const res = await api.post("/batches", {
         startYear,
         endYear,
       });

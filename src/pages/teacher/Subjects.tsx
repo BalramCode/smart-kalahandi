@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Plus, X, BookOpen, PlayCircle, MoreVertical } from "lucide-react";
 import axios from "axios";
+import api from "../../services/api";
 
 const Subjects = () => {
   const navigate = useNavigate();
@@ -19,7 +20,8 @@ const Subjects = () => {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/subjects/${batchId}/${semId}`);
+        // const res = await axios.get(`http://localhost:5000/api/subjects/${batchId}/${semId}`);
+        const res = await api.get(`/subjects/${batchId}/${semId}`);
         setSubjects(res.data);
       } catch (err) {
         console.error("Error loading subjects:", err);
@@ -33,12 +35,13 @@ const Subjects = () => {
   const handleAddSubject = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("http://localhost:5000/api/subjects", {
+      const res = await api.post("/subjects", {
         name: newSubject.name.toUpperCase(),
         fullName: newSubject.fullName,
         batch: batchId,
         semester: semId
       });
+      // Axios puts data in res.data
       setSubjects([...subjects, res.data]);
       setNewSubject({ name: "", fullName: "" });
       setIsModalOpen(false);

@@ -10,20 +10,22 @@ import { toast } from "sonner";
 import { GoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 
+import api from "../services/api";
+
 const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rollNo, setRollNo] = useState(""); // New State for Roll Number
   const [role, setRole] = useState<UserRole>("student");
-  
+
   const { register, isLoading } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     console.log("Sending:", { name, email, password, role, rollNo });
     e.preventDefault();
-    
+
     // Validation: Only require rollNo if user is a student
     if (!name || !email || !password || (role === "student" && !rollNo)) {
       toast.error("Please fill all required fields");
@@ -32,8 +34,8 @@ const Register = () => {
 
     try {
       // Assuming you update your useAuth register function to accept rollNo as the 5th argument
-      await register(name, email, password, role, rollNo); 
-      
+      await register(name, email, password, role, rollNo);
+
       toast.success("Account created!");
       navigate(role === "teacher" ? "/teacher/dashboard" : "/student/scanner");
     } catch (err: any) {
@@ -62,11 +64,10 @@ const Register = () => {
             <button
               key={r}
               onClick={() => setRole(r)}
-              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 capitalize ${
-                role === r
+              className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 capitalize ${role === r
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               {r}
             </button>
@@ -83,12 +84,12 @@ const Register = () => {
           {role === "student" && (
             <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
               <Label htmlFor="rollNo">Roll Number</Label>
-              <Input 
-                id="rollNo" 
-                placeholder="e.g. CS202601" 
-                value={rollNo} 
-                onChange={(e) => setRollNo(e.target.value)} 
-                className="h-11 rounded-xl bg-background border-primary/20 focus:border-primary" 
+              <Input
+                id="rollNo"
+                placeholder="e.g. CS202601"
+                value={rollNo}
+                onChange={(e) => setRollNo(e.target.value)}
+                className="h-11 rounded-xl bg-background border-primary/20 focus:border-primary"
               />
             </div>
           )}
@@ -111,20 +112,38 @@ const Register = () => {
           <GoogleLogin
             onSuccess={async (credentialResponse) => {
               try {
-                const res = await axios.post("http://localhost:5000/api/auth/google", {
+                // 1. Sending the Google JWT to your backend
+                const res = await api.post("/auth/google", {
                   token: credentialResponse.credential,
-                  role: role,
-                  // If using Google, you might need a secondary step to collect rollNo if it's missing
+                  role: role, // 'student' or 'teacher' from your state
                 });
 
-                localStorage.setItem("token", res.data.data.token);
-                window.location.href = res.data.data.user.role === "teacher" ? "/teacher/dashboard" : "/student/scanner";
+                // 2. Destructure carefully based on your backend response structure
+                // res.data is the Axios response body
+                const responseData = res.data.data || res.data;
+
+                if (responseData.token) {
+                  localStorage.setItem("token", responseData.token);
+
+                  toast.success("Google Login Successful!");
+
+                  // 3. Redirect based on role
+                  const userRole = responseData.user?.role;
+                  window.location.href = userRole === "teacher"
+                    ? "/teacher/dashboard"
+                    : "/student/scanner";
+                }
               } catch (err) {
-                console.log(err);
-                toast.error("Google login failed");
+                console.error("Backend Google Auth Error:", err);
+                // Accessing the specific error message from your Express backend
+                const errorMessage = err.response?.data?.message || "Google login failed";
+                toast.error(errorMessage);
               }
             }}
-            onError={() => console.log("Login Failed")}
+            onError={() => {
+              console.log("Google Popup Closed or Failed");
+              toast.error("Google Sign-In was interrupted");
+            }}
           />
         </div>
 

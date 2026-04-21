@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import axios from "axios";
+// 1. Import your custom api instance instead of raw axios
+import api from "../services/api"; 
 
 export type UserRole = "student" | "teacher";
 
@@ -8,7 +9,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
-  rollNo?: string; // Added rollNo to the User interface
+  rollNo?: string;
   department?: string;
 }
 
@@ -21,7 +22,7 @@ interface AuthContextType {
     email: string,
     password: string,
     role: UserRole,
-    rollNo?: string // Added rollNo to register arguments
+    rollNo?: string
   ) => Promise<void>;
 }
 
@@ -42,17 +43,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     password: string,
     role: UserRole,
-    rollNo?: string // Catch the rollNo here
+    rollNo?: string
   ) => {
     try {
       setIsLoading(true);
 
-      const res = await axios.post("http://localhost:5000/api/auth/register", {
+      // 2. Use 'api.post' and a short path. The URL comes from .env automatically.
+      const res = await api.post("/auth/register", {
         name,
         email,
         password,
         role,
-        rollNo: role === 'student' ? rollNo : null, // Send rollNo to the backend
+        ...(role === 'student' && { rollNo }),
       });
 
       const { token, user: userData } = res.data.data;
@@ -63,39 +65,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userData);
     } catch (err) {
       console.error("Registration error:", err);
-      throw err; 
+      throw err;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const token = localStorage.getItem("token");
-
   useEffect(() => {
     const fetchUser = async () => {
-      try {
-        const res = await axios.get("http://localhost:5000/api/auth/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
 
+      try {
+        // 3. Notice we don't need to manually pass the Header here anymore!
+        // Our api interceptor handles it.
+        const res = await api.get("/auth/me");
         setUser(res.data.data.user);
       } catch (err) {
         console.error("Fetch user error:", err);
-        localStorage.removeItem("token"); // Clear invalid token
+        localStorage.removeItem("token");
         setUser(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (token) {
-      fetchUser();
-    } else {
-      setIsLoading(false);
-    }
-  }, [token]);
+    fetchUser();
+  }, []); // Runs once on mount
 
   const logout = () => {
     localStorage.removeItem("token");

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { loginUser } from "../services/auth.js";
 import { GoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
+import api from "../services/api";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -120,7 +121,7 @@ const handleSubmit = async (e) => {
   <GoogleLogin
     onSuccess={async (credentialResponse) => {
       try {
-        const res = await axios.post("http://localhost:5000/api/auth/google", {
+        const res = await api.post("/auth/google", {
           token: credentialResponse.credential,
           role: role,
         });

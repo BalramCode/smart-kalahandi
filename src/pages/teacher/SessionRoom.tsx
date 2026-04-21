@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
-import { 
-  ArrowLeft, 
-  Clock, 
-  Users, 
-  CheckCircle2, 
-  Share2, 
-  Copy, 
-  Send, 
-  LayoutDashboard, 
+import {
+  ArrowLeft,
+  Clock,
+  Users,
+  CheckCircle2,
+  Share2,
+  Copy,
+  Send,
+  LayoutDashboard,
   ExternalLink,
   ShieldCheck // <--- MAKE SURE THIS IS HERE
 } from "lucide-react";
 import axios from "axios";
+
+import api from "../../services/api";
 
 const Session = () => {
   const { subjectId } = useParams();
@@ -21,7 +23,7 @@ const Session = () => {
 
   const [session, setSession] = useState(null);
   const [timeLeft, setTimeLeft] = useState("");
-  const [attendees, setAttendees] = useState([]);
+  const [attendees, setAttendees] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
 
   // 1. Session Initialization
@@ -29,24 +31,31 @@ const Session = () => {
     const initSession = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.post(
-          "http://localhost:5000/api/sessions/create",
-          { subject: subjectId },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setSession(res.data.data);
+
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+          const { latitude, longitude } = pos.coords;
+
+         const res = await api.post("/sessions/create", {
+              subject: subjectId,
+              lat: latitude,
+              lng: longitude
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          setSession(res.data.data.session);
+        });
+
       } catch (err) {
         fetchActiveSession();
       }
     };
 
+
     const fetchActiveSession = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:5000/api/sessions/active", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setSession(res.data.data);
+        const res = await api.get("/sessions/active");
+        setSession(res.data.data.session);
       } catch (err) {
         navigate("/teacher/batches");
       }
@@ -60,11 +69,8 @@ const Session = () => {
     if (!session?._id) return;
     const fetchAttendees = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(`http://localhost:5000/api/attendance/session/${session._id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setAttendees(res.data.data);
+        const res = await api.get(`/attendance/session/${session._id}`);
+        setAttendees(Array.isArray(res.data.data.records) ? res.data.data.records : []);
       } catch (err) {
         console.error("Live feed error:", err);
       }
@@ -113,12 +119,12 @@ const Session = () => {
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 lg:p-12">
       <div className="max-w-6xl mx-auto">
-        
+
         {/* Top Navbar */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <button 
-              onClick={() => navigate(-1)} 
+            <button
+              onClick={() => navigate(-1)}
               className="flex items-center gap-2 text-slate-500 hover:text-red-600 transition-colors font-semibold mb-2"
             >
               <ArrowLeft size={18} /> End Session
@@ -137,21 +143,21 @@ const Session = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+
           {/* Left Column: QR & Sharing */}
           <div className="lg:col-span-7 space-y-6">
             <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-slate-200/50 border border-white relative overflow-hidden text-center">
               {/* Decorative background pulse */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-indigo-50 rounded-full blur-3xl opacity-50 -z-10"></div>
-              
+
               <h2 className="text-2xl font-bold text-slate-800 mb-2">Student Check-in</h2>
               <p className="text-slate-400 mb-8 font-medium">Display this QR or share the link with your students</p>
 
               <div className="bg-slate-50 inline-block p-6 rounded-[2.5rem] border-4 border-white shadow-inner mb-8 transition-transform hover:scale-[1.02] duration-300">
                 {timeLeft !== "EXPIRED" ? (
-                  <QRCode 
-                    value={attendanceLink} 
-                    size={220} 
+                  <QRCode
+                    value={attendanceLink}
+                    size={220}
                     level="H"
                     fgColor="#1e293b"
                     className="rounded-lg"
@@ -166,17 +172,16 @@ const Session = () => {
 
               {/* Action Buttons */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto">
-                <button 
+                <button
                   onClick={shareWhatsApp}
                   className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20ba59] text-white py-4 rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-green-100"
                 >
                   <Send size={18} /> Share to Group
                 </button>
-                <button 
+                <button
                   onClick={copyLink}
-                  className={`flex items-center justify-center gap-2 py-4 rounded-2xl font-bold transition-all active:scale-95 border-2 ${
-                    copied ? "bg-emerald-50 border-emerald-500 text-emerald-600" : "bg-white border-slate-100 text-slate-600 hover:bg-slate-50"
-                  }`}
+                  className={`flex items-center justify-center gap-2 py-4 rounded-2xl font-bold transition-all active:scale-95 border-2 ${copied ? "bg-emerald-50 border-emerald-500 text-emerald-600" : "bg-white border-slate-100 text-slate-600 hover:bg-slate-50"
+                    }`}
                 >
                   {copied ? <CheckCircle2 size={18} /> : <Copy size={18} />}
                   {copied ? "Copied!" : "Copy Link"}
@@ -219,7 +224,7 @@ const Session = () => {
                 </h4>
                 <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">Recent</span>
               </div>
-              
+
               <div className="space-y-3 overflow-y-auto pr-2 custom-scrollbar">
                 {attendees.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-10 text-center">
@@ -230,8 +235,8 @@ const Session = () => {
                   </div>
                 ) : (
                   attendees.map((a, i) => (
-                    <div 
-                      key={i} 
+                    <div
+                      key={i}
                       className="flex items-center justify-between bg-slate-50 hover:bg-indigo-50/50 p-4 rounded-[1.25rem] border border-transparent hover:border-indigo-100 transition-all animate-in slide-in-from-right-4 duration-300"
                     >
                       <div className="flex items-center gap-3">
