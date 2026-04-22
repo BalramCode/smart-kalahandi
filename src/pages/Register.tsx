@@ -65,8 +65,8 @@ const Register = () => {
               key={r}
               onClick={() => setRole(r)}
               className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 capitalize ${role === r
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
                 }`}
             >
               {r}
@@ -112,39 +112,45 @@ const Register = () => {
           <GoogleLogin
             onSuccess={async (credentialResponse) => {
               try {
-                // 1. Sending the Google JWT to your backend
                 const res = await api.post("/auth/google", {
                   token: credentialResponse.credential,
-                  role: role, // 'student' or 'teacher' from your state
+                  role: role,
                 });
 
-                // 2. Destructure carefully based on your backend response structure
-                // res.data is the Axios response body
-                const responseData = res.data.data || res.data;
+                const data = res.data.data;
 
-                if (responseData.token) {
-                  localStorage.setItem("token", responseData.token);
+                // ✅ store token
+                localStorage.setItem("token", data.token);
 
-                  toast.success("Google Login Successful!");
+                toast.success("Google Login Successful!");
 
-                  // 3. Redirect based on role
-                  const userRole = responseData.user?.role;
-                  window.location.href = userRole === "teacher"
-                    ? "/teacher/dashboard"
-                    : "/student/scanner";
+                // 🔥 HANDLE STUDENT PROFILE
+                if (data.needsProfileCompletion) {
+                  navigate("/complete-profile");
+                  return;
                 }
+
+                // ✅ NORMAL REDIRECT
+                navigate(
+                  data.user.role === "teacher"
+                    ? "/teacher/dashboard"
+                    : "/student/scanner"
+                );
+
               } catch (err) {
                 console.error("Backend Google Auth Error:", err);
-                // Accessing the specific error message from your Express backend
-                const errorMessage = err.response?.data?.message || "Google login failed";
+                const errorMessage =
+                  err.response?.data?.message || "Google login failed";
                 toast.error(errorMessage);
               }
             }}
+
             onError={() => {
               console.log("Google Popup Closed or Failed");
               toast.error("Google Sign-In was interrupted");
             }}
           />
+
         </div>
 
         <p className="text-center text-sm text-muted-foreground mt-6">
