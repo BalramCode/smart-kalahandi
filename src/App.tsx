@@ -17,6 +17,7 @@ import Batches from "./pages/teacher/Batches"
 import Semesters from "./pages/teacher/Semesters"
 import SessionRoom from "./pages/teacher/SessionRoom"
 import Subjects from "./pages/teacher/Subjects"
+import CompleteProfile from "./pages/CompleteProfile";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +82,8 @@ const App = () => (
           {/* Auth */}
           <Route path="/login" element={<AuthRedirect><Login /></AuthRedirect>} />
           <Route path="/register" element={<AuthRedirect><Register /></AuthRedirect>} />
+          
+          <Route path="/complete-profile" element={<CompleteProfile />} />
 
           {/* Teacher */}
           {/* Teacher */}

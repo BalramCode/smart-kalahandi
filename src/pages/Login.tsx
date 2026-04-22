@@ -20,36 +20,38 @@ const Login = () => {
   const navigate = useNavigate();
 
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  if (!email || !password) {
-    toast.error("Please fill all fields");
-    return;
-  }
-
-  try {
-    const res = await loginUser(email, password);
-    console.log(res);
-
-    if (res.success) {
-      localStorage.setItem("token", res.data.token);
-
-      toast.success("Welcome back!");
-
-      window.location.href =
-        res.data.user.role === "teacher"
-          ? "/teacher/dashboard"
-          : "/student/scanner";
-
-    } else {
-      toast.error(res.message);
+    if (!email || !password) {
+      toast.error("Please fill all fields");
+      return;
     }
 
-  } catch (error) {
-    toast.error("Login failed");
-  }
-};
+    try {
+      const res = await loginUser(email, password);
+      console.log(res);
+
+      if (res.success) {
+        localStorage.setItem("token", res.data.token);
+
+        toast.success("Welcome back!");
+
+        navigate(
+          res.data.data.user.role === "teacher"
+            ? "/teacher/dashboard"
+            : "/student/scanner"
+        );
+
+
+      } else {
+        toast.error(res.message);
+      }
+
+    } catch (error) {
+      toast.error("Login failed");
+    }
+  };
 
 
 
@@ -76,8 +78,8 @@ const handleSubmit = async (e) => {
               key={r}
               onClick={() => setRole(r)}
               className={`flex-1 py-2.5 text-sm font-medium rounded-lg transition-all duration-300 capitalize ${role === r
-                  ? "bg-card text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
                 }`}
             >
               {r}
@@ -118,30 +120,42 @@ const handleSubmit = async (e) => {
         </form>
 
         <div className="mt-4">
-  <GoogleLogin
-    onSuccess={async (credentialResponse) => {
-      try {
-        const res = await api.post("/auth/google", {
-          token: credentialResponse.credential,
-          role: role,
-        });
+          <GoogleLogin
+            onSuccess={async (credentialResponse) => {
+              try {
+                const res = await api.post("/auth/google", {
+                  token: credentialResponse.credential,
+                  role: role,
+                });
 
-        localStorage.setItem("token", res.data.data.token);
+                const data = res.data.data;
 
-        window.location.href =
-          res.data.data.user.role === "teacher"
-            ? "/teacher/dashboard"
-            : "/student/scanner";
+                // ✅ store token
+                localStorage.setItem("token", data.token);
 
-      } catch (err) {
-        console.log(err);
-      }
-    }}
-    onError={() => {
-      console.log("Login Failed");
-    }}
-  />
-</div>
+                // 🔥 IMPORTANT LOGIC
+                if (data.needsProfileCompletion) {
+                  navigate("/complete-profile");
+                  return;
+                }
+
+                // ✅ normal redirect
+                if (data.user.role === "teacher") {
+                  navigate("/teacher/dashboard");
+                } else {
+                  navigate("/student/scanner");
+                }
+
+              } catch (err) {
+                console.log(err);
+              }
+
+            }}
+            onError={() => {
+              console.log("Login Failed");
+            }}
+          />
+        </div>
 
 
         <p className="text-center text-sm text-muted-foreground mt-6">
