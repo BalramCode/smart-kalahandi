@@ -19,7 +19,7 @@ const Register = () => {
   const [rollNo, setRollNo] = useState(""); // New State for Roll Number
   const [role, setRole] = useState<UserRole>("student");
 
-  const { register, isLoading } = useAuth();
+  const { register, isLoading, setUser } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -119,18 +119,22 @@ const Register = () => {
 
                 const data = res.data.data;
 
-                // ✅ store token
+                console.log("GOOGLE RESPONSE:", data);
+
+                if (!data.token) {
+                  toast.error("No token received");
+                  return;
+                }
+
                 localStorage.setItem("token", data.token);
 
-                toast.success("Google Login Successful!");
+                setUser(data.user);
 
-                // 🔥 HANDLE STUDENT PROFILE
                 if (data.needsProfileCompletion) {
                   navigate("/complete-profile");
                   return;
                 }
 
-                // ✅ NORMAL REDIRECT
                 navigate(
                   data.user.role === "teacher"
                     ? "/teacher/dashboard"
@@ -138,18 +142,12 @@ const Register = () => {
                 );
 
               } catch (err) {
-                console.error("Backend Google Auth Error:", err);
-                const errorMessage =
-                  err.response?.data?.message || "Google login failed";
-                toast.error(errorMessage);
+                console.error(err);
+                toast.error(err.response?.data?.message || "Google login failed");
               }
             }}
-
-            onError={() => {
-              console.log("Google Popup Closed or Failed");
-              toast.error("Google Sign-In was interrupted");
-            }}
           />
+
 
         </div>
 

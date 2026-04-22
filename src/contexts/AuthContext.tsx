@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 // 1. Import your custom api instance instead of raw axios
-import api from "../services/api"; 
+import api from "../services/api";
 
 export type UserRole = "student" | "teacher";
 
@@ -15,6 +15,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
+  setUser: React.Dispatch<React.SetStateAction<User | null>>; // 🔥 ADD THIS
   isLoading: boolean;
   logout: () => void;
   register: (
@@ -23,7 +24,7 @@ interface AuthContextType {
     password: string,
     role: UserRole,
     rollNo?: string
-  ) => Promise<void>;
+  ) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -48,13 +49,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setIsLoading(true);
 
-      // 2. Use 'api.post' and a short path. The URL comes from .env automatically.
       const res = await api.post("/auth/register", {
         name,
         email,
         password,
         role,
-        ...(role === 'student' && { rollNo }),
+        ...(role === "student" && { rollNo }),
       });
 
       const { token, user: userData } = res.data.data;
@@ -63,6 +63,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem("role", userData.role);
 
       setUser(userData);
+
+      // ✅ IMPORTANT
+      return res.data;
+
     } catch (err) {
       console.error("Registration error:", err);
       throw err;
@@ -70,6 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }
   };
+
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -103,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, logout, register }}>
+    <AuthContext.Provider value={{ user, setUser, isLoading, logout, register }}>
       {children}
     </AuthContext.Provider>
   );

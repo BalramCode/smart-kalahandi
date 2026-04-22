@@ -16,7 +16,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("student");
-  const { isLoading } = useAuth();
+  const { isLoading, setUser } = useAuth();
   const navigate = useNavigate();
 
 
@@ -30,28 +30,32 @@ const Login = () => {
 
     try {
       const res = await loginUser(email, password);
-      console.log(res);
 
-      if (res.success) {
-        localStorage.setItem("token", res.data.token);
+      if (res.data.success) {
+        const data = res.data.data;
+
+        localStorage.setItem("token", data.token);
+
+        setUser(data.user); // ✅ FIXED
 
         toast.success("Welcome back!");
 
         navigate(
-          res.data.data.user.role === "teacher"
+          data.user.role === "teacher"
             ? "/teacher/dashboard"
             : "/student/scanner"
         );
-
-
       } else {
-        toast.error(res.message);
+        toast.error(res.data.message);
       }
 
     } catch (error) {
-      toast.error("Login failed");
+      console.error(error);
+      toast.error(error.response?.data?.message || "Login failed");
     }
   };
+
+
 
 
 
@@ -130,31 +134,37 @@ const Login = () => {
 
                 const data = res.data.data;
 
+                console.log("GOOGLE RESPONSE:", data);
+
                 // ✅ store token
                 localStorage.setItem("token", data.token);
 
-                // 🔥 IMPORTANT LOGIC
+                // ✅ update auth state
+                setUser(data.user);
+
+                // 🔥 student → complete profile
                 if (data.needsProfileCompletion) {
                   navigate("/complete-profile");
                   return;
                 }
 
-                // ✅ normal redirect
-                if (data.user.role === "teacher") {
-                  navigate("/teacher/dashboard");
-                } else {
-                  navigate("/student/scanner");
-                }
+                // ✅ redirect
+                navigate(
+                  data.user.role === "teacher"
+                    ? "/teacher/dashboard"
+                    : "/student/scanner"
+                );
 
               } catch (err) {
-                console.log(err);
+                console.error(err);
+                toast.error(err.response?.data?.message || "Google login failed");
               }
-
             }}
             onError={() => {
-              console.log("Login Failed");
+              toast.error("Google Sign-In failed");
             }}
           />
+
         </div>
 
 
