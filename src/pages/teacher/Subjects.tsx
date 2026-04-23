@@ -1,35 +1,68 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Plus, X, BookOpen, PlayCircle, MoreVertical } from "lucide-react";
+import { ArrowLeft, Plus, X, BookOpen, PlayCircle, MoreVertical, Users } from "lucide-react";
 import axios from "axios";
 import api from "../../services/api";
-
+interface Subject {
+  _id: string;
+  name: string;
+  fullName: string;
+}
 const Subjects = () => {
   const navigate = useNavigate();
   const { batchId, semId } = useParams();
 
-  const [subjects, setSubjects] = useState([]);
+  // const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newSubject, setNewSubject] = useState({ name: "", fullName: "" });
+  // Inside your Subjects component
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [activeSessionSubjectId, setActiveSessionSubjectId] = useState<string | null>(null);
 
+  const handleLaunchSession = async (id) => {
+    try {
+      // 1. Check if there is already an active session for this subject
+      const res = await api.get(`/session/active`);
 
-  const handleLaunchSession = (id) => {
-    navigate(`/teacher/session/${id}`);
+      // Note: Since your getActiveSession backend returns the LATEST active session for the teacher,
+      // we check if it matches the subject the teacher just clicked.
+      if (res.data.data && res.data.data.session && res.data.data.session.subject === id) {
+        // If it exists and matches, just navigate to it
+        navigate(`/teacher/session/${id}`);
+      } else {
+        // 2. If no active session for THIS subject, navigate and let Session.tsx create it
+        // OR you can call the create API here directly.
+        navigate(`/teacher/session/${id}`);
+      }
+    } catch (err) {
+      console.error("Session check failed", err);
+      navigate(`/teacher/session/${id}`);
+    }
   };
+
   useEffect(() => {
-    const fetchSubjects = async () => {
+    const fetchData = async () => {
       try {
-        // const res = await axios.get(`http://localhost:5000/api/subjects/${batchId}/${semId}`);
         const res = await api.get(`/subjects/${batchId}/${semId}`);
         setSubjects(res.data);
+
+        // Check for active session
+        const activeRes = await api.get(`/session/active`);
+
+        // Accessing data safely for TS
+        if (activeRes.data?.data?.session) {
+          // Ensure you are capturing the correct field (subject ID)
+          const activeSubId = activeRes.data.data.session.subject;
+          setActiveSessionSubjectId(typeof activeSubId === 'string' ? activeSubId : activeSubId._id);
+        }
       } catch (err) {
-        console.error("Error loading subjects:", err);
+        console.error("Error loading data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchSubjects();
+    fetchData();
   }, [batchId, semId]);
 
   const handleAddSubject = async (e) => {
@@ -84,6 +117,7 @@ const Subjects = () => {
       </div>
 
       {/* Interactive Grid */}
+      {/* Interactive Grid */}
       <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
         {subjects.length === 0 ? (
           <div className="col-span-full py-20 flex flex-col items-center justify-center bg-white rounded-[2rem] border-2 border-dashed border-slate-200">
@@ -93,41 +127,55 @@ const Subjects = () => {
             <p className="text-slate-400 font-medium">Empty curriculum. Start by adding a subject.</p>
           </div>
         ) : (
-          subjects.map((sub) => (
-            <div
-              key={sub._id}
-              className="group relative bg-white border border-slate-200/60 p-5 rounded-[1.5rem] transition-all duration-300 hover:border-indigo-200 hover:shadow-2xl hover:shadow-indigo-100/50 flex flex-col justify-between overflow-hidden"
-            >
-              {/* Card Decoration */}
-              <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity blur-2xl"></div>
+          subjects.map((sub) => {
+            const isActive = activeSessionSubjectId?.toString() === sub._id.toString();
+            return (
+              <div
+                key={sub._id}
+                className="group relative bg-white border border-slate-200/60 p-5 rounded-[1.5rem] transition-all duration-300 hover:border-indigo-200 hover:shadow-2xl hover:shadow-indigo-100/50 flex flex-col justify-between overflow-hidden"
+              >
+                <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity blur-2xl"></div>
 
-              <div className="relative z-10">
-                <div className="flex justify-between items-start mb-4">
-                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg`}>
-                    <BookOpen size={20} />
+                <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+                      <BookOpen size={20} />
+                    </div>
+                    <button className="text-slate-300 hover:text-slate-500 transition-colors">
+                      <MoreVertical size={18} />
+                    </button>
                   </div>
-                  <button className="text-slate-300 hover:text-slate-500 transition-colors">
-                    <MoreVertical size={18} />
-                  </button>
+
+                  <h2 className="text-xl font-bold text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">
+                    {sub.name}
+                  </h2>
+                  <p className="text-slate-400 text-xs font-medium mt-1 line-clamp-1">
+                    {sub.fullName}
+                  </p>
                 </div>
 
-                <h2 className="text-xl font-bold text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">
-                  {sub.name}
-                </h2>
-                <p className="text-slate-400 text-xs font-medium mt-1 line-clamp-1">
-                  {sub.fullName}
-                </p>
+                <button
+                  onClick={() => handleLaunchSession(sub._id)}
+                  className={`relative z-10 mt-6 w-full py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${isActive
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
+                      : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                    }`}
+                >
+                  {isActive ? (
+                    <>
+                      <Users size={16} />
+                      <span>See Attendance</span>
+                    </>
+                  ) : (
+                    <>
+                      <PlayCircle size={16} />
+                      <span>Launch Session</span>
+                    </>
+                  )}
+                </button>
               </div>
-
-              <button
-  onClick={() => handleLaunchSession(sub._id)}
-  className="relative z-10 mt-6 w-full py-2.5 bg-slate-50 group-hover:bg-indigo-600 text-slate-600 group-hover:text-white rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
->
-  <PlayCircle size={16} />
-  <span>Launch Session</span>
-</button>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

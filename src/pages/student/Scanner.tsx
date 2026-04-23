@@ -1,187 +1,270 @@
-import React, { useState, useEffect } from "react";
-import { Html5QrcodeScanner, Html5Qrcode } from "html5-qrcode";
+import React, { useState, useEffect, useRef } from "react";
+import { Html5Qrcode } from "html5-qrcode";
 import {
-  Camera, Upload, CheckCircle, AlertCircle,
+  Upload, CheckCircle, AlertCircle,
   ArrowLeft, RefreshCw, Smartphone
 } from "lucide-react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
-
 import api from "../../services/api";
 
 const Scanner = () => {
   const [scanResult, setScanResult] = useState<null | "SUCCESS">(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isScannerStarted, setIsScannerStarted] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannedRef = useRef(false);
+  const isStoppingRef = useRef(false);
+
+
+  // Explicit Dashboard Navigation
+  const goToDashboard = async () => {
+    scannedRef.current = true; // 🔥 prevent scan during navigation
+    await stopScanner();
+    navigate("/student/dashboard");
+  };
 
   const onScanSuccess = async (decodedText: string) => {
-    if (isProcessing) return;
+    if (scannedRef.current) return;   // 🔥 prevents multiple calls
+    scannedRef.current = true;
+
     setIsProcessing(true);
+
+    await stopScanner();
 
     const token = decodedText.includes('/')
       ? decodedText.split('/').pop()
       : decodedText;
 
-    const userToken = localStorage.getItem("token");
-
-    // 🔴 FIRST: Get location
     navigator.geolocation.getCurrentPosition(
-  async (pos) => {
-    try {
-      const { latitude, longitude } = pos.coords;
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
 
-      // ✅ Use the centralized 'api' instance
-      // No need for 'http://localhost:5000/api' or manual Headers!
-      await api.post("/attendance/mark", {
-        qrToken: token,
-        lat: latitude,
-        lng: longitude,
-      });
+          await api.post("/attendance/mark", {
+            qrToken: token,
+            lat: latitude,
+            lng: longitude,
+          });
 
-      setScanResult("SUCCESS");
-      setTimeout(() => navigate("/student/dashboard"), 1500);
+          setScanResult("SUCCESS");
 
-    } catch (err: any) {
-      // Handles 403 (Too far away), 410 (Expired), etc.
-      setError(err.response?.data?.message || "Attendance failed");
-      setIsProcessing(false);
-    }
-  },
-  (err) => {
-    // ❌ Geolocation blocked or failed
-    setError("Location permission is required to mark attendance");
-    setIsProcessing(false);
-  },
-  { enableHighAccuracy: true } // Added for better geofencing precision
-);
+          setTimeout(() => {
+            navigate("/student/dashboard");
+          }, 1200);
+
+        } catch (err: any) {
+          setError(err.response?.data?.message || "Attendance failed");
+          setIsProcessing(false);
+          scannedRef.current = false;   // 🔥 allow retry
+          setTimeout(() => {
+            startScanner();
+          }, 2000); // ⏱️ 2 seconds delay
+        }
+      },
+      () => {
+        setError("Location permission is required");
+        setIsProcessing(false);
+        scannedRef.current = false;
+        setTimeout(() => {
+          startScanner();
+        }, 2000); // ⏱️ 2 seconds delay
+      },
+      { enableHighAccuracy: true }
+    );
   };
 
 
-  useEffect(() => {
-    const scanner = new Html5QrcodeScanner(
-      "reader",
-      {
-        fps: 20,
-        qrbox: { width: 280, height: 280 },
-        aspectRatio: 1.0
-      },
-      false
-    );
 
-    scanner.render(onScanSuccess, () => { });
+  const startScanner = async () => {
+    try {
+      if (!scannerRef.current) {
+        scannerRef.current = new Html5Qrcode("reader");
+      }
+
+      if (!scannerRef.current.isScanning) {
+        await scannerRef.current.start(
+          { facingMode: "environment" },
+          { fps: 15, qrbox: { width: 250, height: 250 } },
+          onScanSuccess,
+          () => { }
+        );
+        setIsScannerStarted(true);
+        setError("");
+      }
+    } catch (err) {
+      setError("Camera access denied or not found.");
+      setIsScannerStarted(false);
+    }
+  };
+
+  const stopScanner = async () => {
+    if (isStoppingRef.current) return; // 🔥 prevent double stop
+    isStoppingRef.current = true;
+
+    try {
+      if (scannerRef.current?.isScanning) {
+        await scannerRef.current.stop();
+        await scannerRef.current.clear(); // 🔥 required
+      }
+    } catch (err) {
+      console.warn("Scanner already stopped", err);
+    } finally {
+      setIsScannerStarted(false);
+      isStoppingRef.current = false; // 🔥 reset
+    }
+  };
+
+
+
+  useEffect(() => {
+    setTimeout(() => {
+      startScanner();
+    }, 2000); // ⏱️ 2 seconds delay
 
     return () => {
-      scanner.clear().catch(err => console.error("Failed to clear scanner", err));
+      stopScanner(); // 🔥 ALWAYS use this
     };
+
   }, []);
 
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const imageFile = e.target.files[0];
+    if (e.target.files?.[0]) {
+      await stopScanner(); // 🔥 stop camera first
+
       const html5QrCode = new Html5Qrcode("reader");
 
       try {
         setError("");
-        const decodedText = await html5QrCode.scanFile(imageFile, true);
+        const decodedText = await html5QrCode.scanFile(e.target.files[0], true);
         onScanSuccess(decodedText);
       } catch (err) {
-        setError("No QR code detected in this image.");
+        setError("No QR code found in image.");
       }
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-white flex flex-col items-center justify-center p-4">
-      {/* Background Glow Decor */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-lg h-64 bg-indigo-600/20 blur-[120px] -z-10" />
+    <div className="min-h-screen bg-[#020617] text-white flex flex-col items-center p-6 font-sans">
+      <div className="fixed top-[-10%] left-1/2 -translate-x-1/2 w-[300px] h-[300px] bg-indigo-600/20 blur-[120px] rounded-full -z-10" />
 
-      {/* Top Navigation */}
-      <div className="w-full max-w-md flex items-center justify-between mb-8 px-2">
+      {/* Updated Header with Real Text Navigation */}
+      <div className="w-full max-w-md flex flex-col gap-4 mb-8 mt-4">
         <button
-          onClick={() => navigate("/student/dashboard")}
-          className="p-3 bg-slate-800/50 rounded-2xl border border-slate-700 hover:bg-slate-700 transition-all group"
+          onClick={goToDashboard}
+          className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors group w-fit"
         >
-          <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+          <div className="p-2 bg-white/5 border border-white/10 rounded-xl group-hover:bg-white/10 transition-all">
+            <ArrowLeft size={18} />
+          </div>
+          <span className="text-sm font-medium tracking-wide">Back to Dashboard</span>
         </button>
-        <div className="text-right">
-          <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">Scanner</p>
-          <h2 className="text-lg font-bold">Attendance</h2>
+
+        <div className="flex justify-between items-end px-1">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight uppercase italic">Scanner</h1>
+            <p className="text-[10px] text-indigo-400 uppercase tracking-[0.3em] font-bold">Attendance System</p>
+          </div>
+          <div className="h-10 w-10 rounded-full border-2 border-indigo-500/30 flex items-center justify-center">
+            <div className={`h-2 w-2 rounded-full animate-pulse ${isScannerStarted ? 'bg-emerald-500' : 'bg-red-500'}`} />
+          </div>
         </div>
       </div>
 
-      <div className="w-full max-w-md">
-        {/* Main Scanner Container */}
-        <div className="bg-slate-900/50 backdrop-blur-xl rounded-[3rem] p-4 border border-slate-800 shadow-2xl relative overflow-hidden">
+      <div className="w-full max-w-md relative">
+        {scanResult === "SUCCESS" && (
+          <div className="absolute inset-0 z-50 bg-emerald-600 rounded-[2.5rem] flex flex-col items-center justify-center animate-in zoom-in duration-300 shadow-[0_0_50px_rgba(16,185,129,0.4)]">
+            <CheckCircle size={80} className="mb-4 animate-bounce" />
+            <h2 className="text-2xl font-black italic">SUCCESSFUL!</h2>
+            <p className="text-emerald-100 opacity-80 text-sm">Redirecting to home...</p>
+          </div>
+        )}
 
-          {/* Success Overlay */}
-          {scanResult === "SUCCESS" && (
-            <div className="absolute inset-0 z-50 bg-emerald-500 flex flex-col items-center justify-center animate-in fade-in duration-300">
-              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-4 scale-up-center">
-                <CheckCircle size={48} className="text-white" />
+        {/* Main Interface Card */}
+        <div className="bg-white/5 border border-white/10 backdrop-blur-3xl rounded-[3rem] p-6 shadow-2xl overflow-hidden relative">
+
+          {/* Glass Overlay for scanner */}
+          <div className="relative aspect-square overflow-hidden rounded-[2.5rem] bg-slate-950 group border border-white/10">
+            <div id="reader" className="w-full h-full" />
+
+            {isScannerStarted && !isProcessing && (
+              <div className="absolute inset-0 pointer-events-none z-10">
+                <div className="w-full h-[3px] bg-gradient-to-r from-transparent via-indigo-400 to-transparent shadow-[0_0_20px_#818cf8] animate-scan-move" />
+                <div className="absolute inset-10 border border-white/10 rounded-3xl opacity-20" />
               </div>
-              <h2 className="text-2xl font-black italic tracking-tighter">SUCCESS!</h2>
-              <p className="text-emerald-100 font-medium">Attendance Verified</p>
+            )}
+
+            {isProcessing && (
+              <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center z-20">
+                <div className="relative">
+                  <RefreshCw size={56} className="text-indigo-500 animate-spin" />
+                  <div className="absolute inset-0 blur-xl bg-indigo-500/20 animate-pulse" />
+                </div>
+                <p className="mt-6 text-xs font-black tracking-[0.4em] text-white">VALIDATING</p>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mt-8">
+            <label className="flex flex-col items-center justify-center gap-3 bg-slate-800/40 hover:bg-slate-800/60 py-6 rounded-[2rem] border border-white/5 cursor-pointer transition-all active:scale-95 group">
+              <div className="p-3 bg-indigo-500/10 rounded-2xl group-hover:bg-indigo-500/20 transition-colors">
+                <Upload size={24} className="text-indigo-400" />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">From Gallery</span>
+              <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
+            </label>
+
+            <button
+              onClick={isScannerStarted ? stopScanner : startScanner}
+              className={`flex flex-col items-center justify-center gap-3 py-6 rounded-[2rem] border transition-all active:scale-95 group ${isScannerStarted
+                ? 'bg-red-500/5 border-red-500/10 text-red-400'
+                : 'bg-emerald-500/5 border-emerald-500/10 text-emerald-400'
+                }`}
+            >
+              <div className={`p-3 rounded-2xl transition-colors ${isScannerStarted ? 'bg-red-500/10' : 'bg-emerald-500/10'}`}>
+                <Smartphone size={24} />
+              </div>
+              <span className="text-[10px] font-black uppercase tracking-widest">
+                {isScannerStarted ? "Close Camera" : "Open Camera"}
+              </span>
+            </button>
+          </div>
+
+          {error && (
+            <div className="mt-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-4 text-red-400 text-[11px] font-bold animate-shake">
+              <AlertCircle size={20} className="shrink-0" />
+              <span>{error}</span>
             </div>
           )}
-
-          {/* QR Scan Area */}
-          <div className="relative group">
-            <div id="reader" className="overflow-hidden rounded-[2.2rem] bg-black border-4 border-slate-800 transition-all group-hover:border-indigo-500/30" />
-
-            {/* Custom Scan Line Animation (Pure CSS) */}
-            {!scanResult && !isProcessing && (
-              <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.8)] animate-scan z-10" />
-            )}
-
-            {isProcessing && !scanResult && (
-              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center rounded-[2.2rem] z-20">
-                <RefreshCw size={40} className="text-indigo-400 animate-spin" />
-              </div>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="mt-6 space-y-3 p-2">
-            {error && (
-              <div className="bg-red-500/10 border border-red-500/40 p-3 rounded-2xl flex items-center gap-3 text-red-400 text-xs font-bold animate-shake">
-                <AlertCircle size={16} /> {error}
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-3">
-              <label className="flex flex-col items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 py-6 rounded-[2rem] cursor-pointer transition-all border border-slate-700/50 active:scale-95">
-                <Upload size={24} className="text-indigo-400" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Gallery</span>
-                <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
-              </label>
-
-              <div className="flex flex-col items-center justify-center gap-2 bg-slate-800/30 py-6 rounded-[2rem] border border-slate-700/30 opacity-50">
-                <Smartphone size={24} className="text-slate-500" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Live Cam</span>
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Footer Help */}
-        <p className="text-center text-slate-500 text-xs mt-8 font-medium">
-          Make sure the QR code is within the box. <br />
-          Facing issues? <span className="text-indigo-400 underline underline-offset-4 cursor-pointer">Contact Support</span>
-        </p>
+        <div className="mt-10 bg-white/5 p-5 rounded-3xl border border-white/5">
+          <p className="text-center text-slate-400 text-[11px] leading-relaxed italic">
+            Keep the QR code steady inside the scanner frame for instant recognition.
+          </p>
+        </div>
       </div>
 
-      {/* Custom Styles for Scanner & Animation */}
       <style>{`
-        #reader__dashboard { display: none !important; }
-        #reader__status_span { display: none !important; }
-        #reader video { border-radius: 2rem !important; object-fit: cover !important; }
-        @keyframes scan {
-          0% { top: 0%; }
-          100% { top: 100%; }
+        #reader video {
+          object-fit: cover !important;
+          width: 100% !important;
+          height: 100% !important;
         }
-        .animate-scan { animation: scan 2s linear infinite; }
-        .animate-shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes scan-move {
+          0% { transform: translateY(0); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateY(350px); opacity: 0; }
+        }
+        .animate-scan-move {
+          animation: scan-move 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        .animate-shake {
+          animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
         @keyframes shake {
           10%, 90% { transform: translate3d(-1px, 0, 0); }
           20%, 80% { transform: translate3d(2px, 0, 0); }

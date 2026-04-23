@@ -86,7 +86,7 @@ const Register = () => {
               <Label htmlFor="rollNo">Roll Number</Label>
               <Input
                 id="rollNo"
-                placeholder="e.g. CS202601"
+                placeholder="e.g. BS24-063"
                 value={rollNo}
                 onChange={(e) => setRollNo(e.target.value)}
                 className="h-11 rounded-xl bg-background border-primary/20 focus:border-primary"
