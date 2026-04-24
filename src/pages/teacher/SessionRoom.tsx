@@ -73,22 +73,21 @@ const Session = () => {
     }
   };
   // 1. Session Initialization
-  // 1. Session Initialization
+  // Update the initSession function inside your useEffect
   useEffect(() => {
     const initSession = async () => {
       try {
-        // First: Try to fetch if there is already an active session for this subject
-        // You might need an endpoint like /sessions/active/:subjectId
-        const activeRes = await api.get(`/session/active`);
-        if (activeRes.data.data.session) {
-          // If one exists, use it! Don't create a new one.
+        // FIX: Pass the subjectId in the URL
+        const activeRes = await api.get(`/session/active/${subjectId}`);
+
+        if (activeRes.data?.data?.session) {
           setSession(activeRes.data.data.session);
         } else {
-          // Second: If no active session, ONLY THEN create a new one
-          createNewSession();
+          alert("No session exists. Please launch from dashboard.");
+          navigate(-1);
         }
+
       } catch (err) {
-        // If the "active" check fails, attempt to create
         createNewSession();
       }
     };
@@ -110,7 +109,7 @@ const Session = () => {
       });
     };
 
-    initSession();
+    if (subjectId) initSession(); // Only run if subjectId exists
   }, [subjectId, navigate]);
   // 2. Poll for Live Attendance
   useEffect(() => {

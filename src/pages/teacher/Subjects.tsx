@@ -1,80 +1,95 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Plus, X, BookOpen, PlayCircle, MoreVertical, Users } from "lucide-react";
-import axios from "axios";
+import { ArrowLeft, Plus, X, BookOpen, PlayCircle, MoreVertical, Users, User } from "lucide-react"; // Added User icon
 import api from "../../services/api";
+
 interface Subject {
   _id: string;
   name: string;
   fullName: string;
 }
+
 const Subjects = () => {
   const navigate = useNavigate();
   const { batchId, semId } = useParams();
 
-  // const [subjects, setSubjects] = useState([]);
+  // State Management
+  const [user, setUser] = useState<{ name: string } | null>(null);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newSubject, setNewSubject] = useState({ name: "", fullName: "" });
-  // Inside your Subjects component
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [activeSessionSubjectId, setActiveSessionSubjectId] = useState<string | null>(null);
+  const [sessionStatuses, setSessionStatuses] = useState<{ [key: string]: boolean }>({});
+  const [checkingSessions, setCheckingSessions] = useState(true);
 
-  const handleLaunchSession = async (id) => {
-    try {
-      // 1. Check if there is already an active session for this subject
-      const res = await api.get(`/session/active`);
-
-      // Note: Since your getActiveSession backend returns the LATEST active session for the teacher,
-      // we check if it matches the subject the teacher just clicked.
-      if (res.data.data && res.data.data.session && res.data.data.session.subject === id) {
-        // If it exists and matches, just navigate to it
-        navigate(`/teacher/session/${id}`);
-      } else {
-        // 2. If no active session for THIS subject, navigate and let Session.tsx create it
-        // OR you can call the create API here directly.
-        navigate(`/teacher/session/${id}`);
+  // 1. Load Teacher Data from LocalStorage
+  useEffect(() => {
+    const savedUser = localStorage.getItem("user");
+    if (savedUser) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (e) {
+        console.error("Failed to parse user data");
       }
-    } catch (err) {
-      console.error("Session check failed", err);
-      navigate(`/teacher/session/${id}`);
     }
-  };
+  }, []);
 
+  // 2. Load Subjects and their Session Statuses
   useEffect(() => {
     const fetchData = async () => {
+      setCheckingSessions(true);
       try {
         const res = await api.get(`/subjects/${batchId}/${semId}`);
-        setSubjects(res.data);
+        const subjectsData = res.data;
+        setSubjects(subjectsData);
 
-        // Check for active session
-        const activeRes = await api.get(`/session/active`);
-
-        // Accessing data safely for TS
-        if (activeRes.data?.data?.session) {
-          // Ensure you are capturing the correct field (subject ID)
-          const activeSubId = activeRes.data.data.session.subject;
-          setActiveSessionSubjectId(typeof activeSubId === 'string' ? activeSubId : activeSubId._id);
-        }
+        const statuses: { [key: string]: boolean } = {};
+        await Promise.all(
+          subjectsData.map(async (sub: any) => {
+            try {
+              const statusRes = await api.get(`/session/active/${sub._id}`);
+              statuses[sub._id] = !!statusRes.data?.data?.session;
+            } catch (e) {
+              statuses[sub._id] = false;
+            }
+          })
+        );
+        setSessionStatuses(statuses);
       } catch (err) {
-        console.error("Error loading data:", err);
+        console.error("Fetch failed", err);
       } finally {
+        setCheckingSessions(false);
         setLoading(false);
       }
     };
     fetchData();
   }, [batchId, semId]);
 
-  const handleAddSubject = async (e) => {
+  const handleLaunchSession = async (id: string) => {
+    try {
+      const res = await api.get(`/session/active/${id}`);
+      if (res.data?.data?.session) {
+        navigate(`/teacher/session/${id}`);
+      } else {
+        const createRes = await api.post("/session/create", { subject: id });
+        if (createRes.data?.data?.session) {
+          navigate(`/teacher/session/${id}`);
+        }
+      }
+    } catch (err) {
+      console.error("Launch failed", err);
+    }
+  };
+
+  const handleAddSubject = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const res = await api.post("/subjects", {
         name: newSubject.name.toUpperCase(),
         fullName: newSubject.fullName,
         batch: batchId,
-        semester: semId
+        semester: semId,
       });
-      // Axios puts data in res.data
       setSubjects([...subjects, res.data]);
       setNewSubject({ name: "", fullName: "" });
       setIsModalOpen(false);
@@ -83,144 +98,164 @@ const Subjects = () => {
     }
   };
 
-  if (loading) return <div className="flex h-screen items-center justify-center text-slate-400 animate-pulse">Loading Academy...</div>;
+  if (loading) return (
+    <div className="flex h-screen items-center justify-center bg-white">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Accessing Ledger...</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
-      {/* Sleek Header */}
-      <div className="max-w-6xl mx-auto mb-10 flex flex-col md:flex-row justify-between items-end gap-6">
-        <div className="space-y-2">
-          <button
-            onClick={() => navigate(-1)}
-            className="group flex items-center gap-2 text-slate-400 hover:text-indigo-600 transition-all text-sm font-medium"
-          >
-            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-            Back to Semesters
-          </button>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-            Subjects <span className="text-indigo-600">.</span>
-          </h1>
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 w-fit px-3 py-1 rounded-full">
-            <span>Batch {batchId.slice(-4)}</span>
-            <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-            <span>{semId}</span>
+    <div className="min-h-screen bg-[#fcfcfd] text-slate-900 font-sans antialiased">
+      {/* Navigation */}
+      <nav className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200/50">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400">
+              <ArrowLeft size={20} />
+            </button>
+            <div className="h-6 w-[1px] bg-slate-200" />
+            <h1 className="text-lg font-bold tracking-tight text-slate-800">Academic <span className="text-indigo-600">Ledger</span></h1>
           </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-slate-900 hover:bg-indigo-600 text-white px-5 py-2 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-95 flex items-center gap-2"
+          >
+            <Plus size={18} strokeWidth={3} />
+            <span>New Subject</span>
+          </button>
+        </div>
+      </nav>
+
+      <main className="max-w-6xl mx-auto px-4 py-8">
+        {/* Ledger Column Labels */}
+        <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 mb-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
+          <div className="col-span-3">Professor</div>
+          <div className="col-span-3 border-l pl-4">Subject</div>
+          <div className="col-span-3 border-l pl-4">Topic</div>
+          <div className="col-span-3 text-right">Status / Action</div>
         </div>
 
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="group flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-bold transition-all shadow-lg shadow-indigo-100 hover:shadow-indigo-200 active:scale-95"
-        >
-          <Plus size={20} />
-          <span>Add New Subject</span>
-        </button>
-      </div>
-
-      {/* Interactive Grid */}
-      {/* Interactive Grid */}
-      <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-        {subjects.length === 0 ? (
-          <div className="col-span-full py-20 flex flex-col items-center justify-center bg-white rounded-[2rem] border-2 border-dashed border-slate-200">
-            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 mb-4">
-              <BookOpen size={32} />
+        {/* Ledger Rows */}
+        <div className="space-y-2">
+          {subjects.length === 0 ? (
+            <div className="py-20 text-center bg-white border border-dashed border-slate-200 rounded-2xl">
+              <BookOpen size={40} className="mx-auto text-slate-200 mb-3" />
+              <p className="text-slate-400 text-sm font-medium">The ledger is empty. Add a subject to begin.</p>
             </div>
-            <p className="text-slate-400 font-medium">Empty curriculum. Start by adding a subject.</p>
-          </div>
-        ) : (
-          subjects.map((sub) => {
-            const isActive = activeSessionSubjectId?.toString() === sub._id.toString();
-            return (
-              <div
-                key={sub._id}
-                className="group relative bg-white border border-slate-200/60 p-5 rounded-[1.5rem] transition-all duration-300 hover:border-indigo-200 hover:shadow-2xl hover:shadow-indigo-100/50 flex flex-col justify-between overflow-hidden"
-              >
-                <div className="absolute -top-10 -right-10 w-24 h-24 bg-indigo-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity blur-2xl"></div>
-
-                <div className="relative z-10">
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
-                      <BookOpen size={20} />
+          ) : (
+            subjects.map((sub, index) => {
+              const hasSession = sessionStatuses[sub._id];
+              return (
+                <div
+                  key={sub._id}
+                  className="group grid grid-cols-1 md:grid-cols-12 gap-4 items-center bg-white border border-slate-200/60 p-4 md:p-3 rounded-xl transition-all duration-300 hover:shadow-xl hover:border-indigo-200 animate-in fade-in slide-in-from-right-4"
+                  style={{ animationDelay: `${index * 40}ms` }}
+                >
+                  {/* Column 1: Teacher */}
+                  <div className="md:col-span-3 flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${hasSession ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                      <User size={16} />
                     </div>
-                    <button className="text-slate-300 hover:text-slate-500 transition-colors">
+                    <span className="text-sm font-bold text-slate-700 truncate">{user?.name || "Teacher"}</span>
+                  </div>
+
+                  {/* Column 2: Subject */}
+                  <div className="md:col-span-3 md:border-l border-slate-100 md:pl-4">
+                    <label className="md:hidden text-[9px] font-bold text-slate-400 uppercase mb-1 block">Subject</label>
+                    <span className="text-sm font-bold text-slate-900 tracking-tight">{sub.name}</span>
+                  </div>
+
+                  {/* Column 3: Topic */}
+                  <div className="md:col-span-3 md:border-l border-slate-100 md:pl-4">
+                    <label className="md:hidden text-[9px] font-bold text-slate-400 uppercase mb-1 block">Title</label>
+                    <span className="text-xs text-slate-500 font-medium line-clamp-1">{sub.fullName}</span>
+                  </div>
+
+                  {/* Column 4: Actions */}
+                  <div className="md:col-span-3 flex items-center justify-end gap-2 pt-3 md:pt-0 border-t md:border-t-0 border-slate-50">
+                    <button
+                      onClick={() => handleLaunchSession(sub._id)}
+                      className={`flex-grow md:flex-grow-0 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${hasSession
+                          ? "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                          : "bg-slate-900 text-white hover:bg-indigo-600 shadow-md"
+                        }`}
+                    >
+                      {hasSession ? <Users size={14} /> : <PlayCircle size={14} />}
+                      {hasSession ? "See Attendance" : "Create Session"}
+                    </button>
+                    <button className="p-2 text-slate-300 hover:text-slate-600 transition-colors">
                       <MoreVertical size={18} />
                     </button>
                   </div>
-
-                  <h2 className="text-xl font-bold text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">
-                    {sub.name}
-                  </h2>
-                  <p className="text-slate-400 text-xs font-medium mt-1 line-clamp-1">
-                    {sub.fullName}
-                  </p>
                 </div>
+              );
+            })
+          )}
+        </div>
+      </main>
 
-                <button
-                  onClick={() => handleLaunchSession(sub._id)}
-                  className={`relative z-10 mt-6 w-full py-2.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${isActive
-                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
-                      : "bg-slate-50 text-slate-600 hover:bg-slate-100"
-                    }`}
-                >
-                  {isActive ? (
-                    <>
-                      <Users size={16} />
-                      <span>See Attendance</span>
-                    </>
-                  ) : (
-                    <>
-                      <PlayCircle size={16} />
-                      <span>Launch Session</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      {/* Modern Centered Modal */}
+      {/* Modern Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in slide-in-from-bottom-8 duration-500">
-            <div className="px-8 pt-8 pb-4 flex justify-between items-center">
-              <h3 className="text-2xl font-black text-slate-800">Add Subject</h3>
-              <button onClick={() => setIsModalOpen(false)} className="bg-slate-100 p-2 rounded-full hover:bg-red-50 hover:text-red-500 transition-all">
-                <X size={18} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Darker, sharper overlay to fix the "blurry" look */}
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] animate-in fade-in duration-300"
+            onClick={() => setIsModalOpen(false)}
+          />
+
+          <div className="relative bg-white w-full max-w-[360px] rounded-[24px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden animate-in zoom-in-95 duration-200 border border-slate-100">
+            {/* Header */}
+            <div className="px-6 py-5 flex justify-between items-center bg-white border-b border-slate-50">
+              <div>
+                <h3 className="text-base font-black text-slate-800 tracking-tight">New Subject</h3>
+                <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mt-0.5">Academic Entry</p>
+              </div>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="p-2 hover:bg-slate-50 text-slate-400 hover:text-slate-600 rounded-full transition-all"
+              >
+                <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleAddSubject} className="p-8 pt-2">
-              <div className="space-y-6">
-                <div className="group">
-                  <label className="text-[10px] uppercase tracking-[0.2em] font-black text-slate-400 mb-2 block ml-1">Subject</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Python"
-                    value={newSubject.name}
-                    onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
-                    className="w-full bg-slate-50 px-5 py-4 rounded-2xl border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none transition-all font-bold text-slate-700"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] uppercase tracking-[0.2em] font-black text-slate-400 mb-2 block ml-1">Full Title</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. OpenCV"
-                    value={newSubject.fullName}
-                    onChange={(e) => setNewSubject({ ...newSubject, fullName: e.target.value })}
-                    className="w-full bg-slate-50 px-5 py-4 rounded-2xl border-2 border-transparent focus:border-indigo-500 focus:bg-white outline-none transition-all font-medium text-slate-600"
-                    required
-                  />
-                </div>
+            {/* Form */}
+            <form onSubmit={handleAddSubject} className="p-6 space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">
+                  Subject
+                </label>
+                <input
+                  placeholder="e.g. CS101"
+                  className="w-full bg-slate-50/50 px-4 py-3 rounded-2xl border border-slate-200 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/5 outline-none text-sm font-bold uppercase transition-all placeholder:text-slate-300"
+                  value={newSubject.name}
+                  onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">
+                  Topic Title
+                </label>
+                <input
+                  placeholder="e.g. Advanced Algorithms"
+                  className="w-full bg-slate-50/50 px-4 py-3 rounded-2xl border border-slate-200 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/5 outline-none text-sm font-medium transition-all placeholder:text-slate-300"
+                  value={newSubject.fullName}
+                  onChange={(e) => setNewSubject({ ...newSubject, fullName: e.target.value })}
+                  required
+                />
               </div>
 
               <button
                 type="submit"
-                className="w-full mt-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-lg hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 active:scale-95"
+                className="w-full group mt-2 relative py-3.5 bg-slate-900 hover:bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-slate-200 hover:shadow-indigo-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
-                Create Subject
+                <span>Commit to Ledger</span>
+                <Plus size={16} className="group-hover:rotate-90 transition-transform" />
               </button>
             </form>
           </div>
