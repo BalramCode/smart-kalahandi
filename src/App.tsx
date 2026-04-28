@@ -18,6 +18,7 @@ import Semesters from "./pages/teacher/Semesters"
 import SessionRoom from "./pages/teacher/SessionRoom"
 import Subjects from "./pages/teacher/Subjects"
 import CompleteProfile from "./pages/CompleteProfile";
+import FullScreenLoader from "@/components/FullScreenLoader";
 
 const queryClient = new QueryClient();
 
@@ -28,7 +29,8 @@ import { useAuth } from "@/contexts/AuthContext";
 const ProtectedRoute = ({ children, role }) => {
   const { user, isLoading } = useAuth();
 
-  if (isLoading) return <div>Loading...</div>;
+if (isLoading) return <FullScreenLoader />;
+
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -51,8 +53,8 @@ const ProtectedRoute = ({ children, role }) => {
 
 const AuthRedirect = ({ children }) => {
   const { user, isLoading } = useAuth();
+if (isLoading) return <FullScreenLoader />;
 
-  if (isLoading) return <div>Loading...</div>;
 
   if (user) {
     return (
