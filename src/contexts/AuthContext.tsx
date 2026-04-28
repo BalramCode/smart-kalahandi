@@ -90,7 +90,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const res = await api.get("/auth/me");
         setUser(res.data.data.user);
       } catch (err) {
-        console.error("Fetch user error:", err);
+        const error = err as any;
+        console.error("Fetch user error:", error.response?.data || error);
+
         localStorage.removeItem("token");
         setUser(null);
       } finally {

@@ -16,27 +16,32 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("student");
-  const { isLoading, setUser } = useAuth();
+  // const { isLoading, setUser } = useAuth();
+  const { setUser } = useAuth();
+
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!email || !password) {
+    if (!email) {
       toast.error("Please fill all fields");
       return;
     }
 
     try {
+      setLoading(true);
+
       const res = await loginUser(email, password);
 
-      if (res.data.success) {
-        const data = res.data.data;
+      if (res.success) {
+        const data = res.data;
 
         localStorage.setItem("token", data.token);
-
-        setUser(data.user); // ✅ FIXED
+        setUser(data.user);
 
         toast.success("Welcome back!");
 
@@ -52,8 +57,11 @@ const Login = () => {
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
     }
   };
+
 
 
 
@@ -116,10 +124,10 @@ const Login = () => {
           </div>
           <Button
             type="submit"
-            disabled={isLoading}
+            disabled={loading}
             className="w-full h-11 rounded-xl gradient-primary text-primary-foreground font-semibold text-sm hover-lift"
           >
-            {isLoading ? <LoadingSpinner /> : "Sign In"}
+            {loading ? <LoadingSpinner /> : "Sign In"}
           </Button>
         </form>
 
