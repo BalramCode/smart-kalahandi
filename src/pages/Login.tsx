@@ -48,7 +48,7 @@ const Login = () => {
         navigate(
           data.user.role === "teacher"
             ? "/teacher/dashboard"
-            : "/student/scanner"
+            : "/student/dashboard"
         );
       } else {
         toast.error(res.data.message);
@@ -160,7 +160,7 @@ const Login = () => {
                 navigate(
                   data.user.role === "teacher"
                     ? "/teacher/dashboard"
-                    : "/student/scanner"
+                    : "/student/dashboard"
                 );
 
               } catch (err) {

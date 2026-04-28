@@ -29,7 +29,7 @@ const handleSubmit = async (e) => {
       toast.success("Profile verified successfully!");
 
       setTimeout(() => {
-        navigate("/student/scanner");
+        navigate("/student/dashboard");
       }, 1500);
 
     } catch (err) {

@@ -37,7 +37,7 @@ const Register = () => {
       await register(name, email, password, role, rollNo);
 
       toast.success("Account created!");
-      navigate(role === "teacher" ? "/teacher/dashboard" : "/student/scanner");
+      navigate(role === "teacher" ? "/teacher/dashboard" : "/student/dashboard");
     } catch (err: any) {
       console.log(err);
       toast.error(err?.response?.data?.message || "Registration failed");
@@ -138,7 +138,7 @@ const Register = () => {
                 navigate(
                   data.user.role === "teacher"
                     ? "/teacher/dashboard"
-                    : "/student/scanner"
+                    : "/student/dashboard"
                 );
 
               } catch (err) {
