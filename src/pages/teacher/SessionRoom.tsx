@@ -28,50 +28,67 @@ const Session = () => {
   const [isExpired, setIsExpired] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
   // NEW: Function to capture the QR and use the Device's native share menu
-  const shareQRCodeImage = async () => {
-    const svg = qrRef.current?.querySelector("svg");
-    if (!svg) return;
+const shareQRCodeImage = async () => {
+  const svg = qrRef.current?.querySelector("svg");
+  if (!svg) return;
 
-    try {
-      // 1. Convert SVG to XML
-      const svgData = new XMLSerializer().serializeToString(svg);
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      const img = new Image();
+  try {
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
 
-      img.onload = async () => {
-        canvas.width = img.width + 40; // add padding
-        canvas.height = img.height + 40;
-        if (ctx) {
-          ctx.fillStyle = "white";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 20, 20);
+    img.onload = async () => {
+      const padding = 40;
+      const textHeight = 80;
 
-          // 2. Convert to Blob
-          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
-          if (!blob) return;
+      canvas.width = img.width + padding;
+      canvas.height = img.height + padding + textHeight;
 
-          const file = new File([blob], "attendance_qr.png", { type: "image/png" });
+      if (ctx) {
+        // Background
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          // 3. Use Web Share API (Works on Mobile/WhatsApp)
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              files: [file],
-              title: 'Attendance QR',
-              text: `📢 Attendance is Live!\n🔗 ${attendanceLink}`,
-            });
-          } else {
-            // Fallback: Just open WhatsApp with text if file sharing isn't supported
-            shareWhatsApp();
-          }
+        // 🔥 Add TEXT (TOP)
+        ctx.fillStyle = "#000";
+        ctx.font = "bold 20px Arial";
+        ctx.textAlign = "center";
+
+        ctx.fillText("Attendance is Live!", canvas.width / 2, 30);
+        ctx.font = "16px Arial";
+        ctx.fillText("Scan QR to mark attendance", canvas.width / 2, 55);
+
+        // QR Image
+        ctx.drawImage(img, padding / 2, textHeight);
+
+        // Convert to file
+        const blob = await new Promise<Blob | null>((resolve) =>
+          canvas.toBlob(resolve, "image/png")
+        );
+        if (!blob) return;
+
+        const file = new File([blob], "attendance_qr.png", {
+          type: "image/png",
+        });
+
+        // Share
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file], // ✅ ONLY IMAGE
+          });
+        } else {
+          alert("Sharing not supported on this device");
         }
-      };
-      img.src = "data:image/svg+xml;base64," + btoa(svgData);
-    } catch (err) {
-      console.error("Sharing failed", err);
-      shareWhatsApp(); // Final fallback
-    }
-  };
+      }
+    };
+
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+  } catch (err) {
+    console.error("Sharing failed", err);
+  }
+};
+
 
   const shareAttendanceText = () => {
     if (!attendees || attendees.length === 0) {
