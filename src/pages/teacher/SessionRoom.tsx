@@ -72,6 +72,53 @@ const Session = () => {
       shareWhatsApp(); // Final fallback
     }
   };
+
+  const shareAttendanceText = () => {
+    if (!attendees || attendees.length === 0) {
+      alert("No attendance data to share");
+      return;
+    }
+
+    // 🔥 Extract session details safely
+    const subjectName = session?.subject?.name || "Unknown Subject";
+    const semester = session?.subject?.semester || "N/A";
+    const batch = session?.subject?.batch?.name || "N/A";
+
+    const date = new Date().toLocaleDateString();
+    const sessionTime = session?.createdAt
+      ? new Date(session.createdAt).toLocaleTimeString()
+      : "N/A";
+
+    // 🧾 Start building message
+    let text = `*Attendance Report*\n\n`;
+
+    text += `Attendance Report of Subject *${subjectName}*\n`;
+    text += `Batch: ${batch}\n`;
+    text += `Semester: ${semester}\n`;
+    text += `Date: ${date}\n`;
+    text += `Session Time: ${sessionTime}\n\n`;
+
+    text += `Total Students Present: ${attendees.length}\n\n`;
+    // 👨‍🎓 Student List
+    attendees.forEach((rec, i) => {
+      const name = rec.studentId?.name || "Student";
+      const roll = rec.studentId?.rollNo || "N/A";
+      const time = rec.markedAt
+        ? new Date(rec.markedAt).toLocaleTimeString()
+        : "N/A";
+
+      text += `${i + 1}. ${name}\n`;
+      text += `   Roll No.: ${roll}\n`;
+    });
+    // 📤 WhatsApp Share
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
+  };
+
+
+
+
+
   // 1. Session Initialization
   // Update the initSession function inside your useEffect
   useEffect(() => {
@@ -249,34 +296,26 @@ const Session = () => {
                 </div>
               )}
 
+              {/* NEW: Updated Expired Actions - Buttons appear side-by-side */}
               {timeLeft === "EXPIRED" && (
-                <div className="max-w-md mx-auto">
+                <div className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
                   <button
                     onClick={() => navigate(-1)}
-                    className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-indigo-600 transition-all shadow-lg"
+                    className="flex-1 flex items-center justify-center gap-2 bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all shadow-lg shadow-slate-200"
                   >
-                    <LayoutDashboard size={18} /> Return to Dashboard
+                    <LayoutDashboard size={18} /> Dashboard
+                  </button>
+
+                  <button
+                    onClick={shareAttendanceText}
+                    className="flex-1 flex items-center justify-center gap-2 bg-indigo-600 text-white py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200"
+                  >
+                    <Share2 size={18} /> Share Report
                   </button>
                 </div>
               )}
             </div>
 
-            <div className="bg-indigo-600 rounded-[2rem] p-6 text-white flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-white/10 rounded-xl">
-                  <ShieldCheck size={24} />
-                </div>
-                <div>
-                  <p className="text-indigo-100 text-xs font-bold uppercase tracking-wider">
-                    {timeLeft === "EXPIRED" ? "Session Archived" : "Security Active"}
-                  </p>
-                  <p className="font-medium text-sm">
-                    {timeLeft === "EXPIRED" ? "Data has been synced to the cloud" : "Anti-proxy & Location verification enabled"}
-                  </p>
-                </div>
-              </div>
-              <ExternalLink size={20} className="opacity-50" />
-            </div>
           </div>
 
           {/* Right Column: Stats & Logs */}
