@@ -28,66 +28,70 @@ const Session = () => {
   const [isExpired, setIsExpired] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
   // NEW: Function to capture the QR and use the Device's native share menu
-const shareQRCodeImage = async () => {
-  const svg = qrRef.current?.querySelector("svg");
-  if (!svg) return;
+  const shareQRCodeImage = async () => {
+    const svg = qrRef.current?.querySelector("svg");
+    if (!svg) return;
 
-  try {
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    const img = new Image();
+    try {
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const img = new Image();
 
-    img.onload = async () => {
-      const padding = 40;
-      const textHeight = 80;
+      img.onload = async () => {
+        const padding = 40;
+        const textHeight = 80;
 
-      canvas.width = img.width + padding;
-      canvas.height = img.height + padding + textHeight;
+        canvas.width = img.width + padding;
+        canvas.height = img.height + padding + textHeight;
 
-      if (ctx) {
-        // Background
-        ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (ctx) {
+          // Background
+          ctx.fillStyle = "white";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // 🔥 Add TEXT (TOP)
-        ctx.fillStyle = "#000";
-        ctx.font = "bold 20px Arial";
-        ctx.textAlign = "center";
+          // 🔥 Add TEXT (TOP)
+          ctx.fillStyle = "#000";
+          ctx.font = "bold 20px Arial";
+          ctx.textAlign = "center";
 
-        ctx.fillText("Attendance is Live!", canvas.width / 2, 30);
-        ctx.font = "16px Arial";
-        ctx.fillText("Scan QR to mark attendance", canvas.width / 2, 55);
+          ctx.fillText("Attendance is Live!", canvas.width / 2, 30);
+          ctx.font = "16px Arial";
+          ctx.fillText("Scan QR to mark attendance", canvas.width / 2, 55);
 
-        // QR Image
-        ctx.drawImage(img, padding / 2, textHeight);
+          // QR Image
+          ctx.drawImage(img, padding / 2, textHeight);
 
-        // Convert to file
-        const blob = await new Promise<Blob | null>((resolve) =>
-          canvas.toBlob(resolve, "image/png")
-        );
-        if (!blob) return;
+          // Convert to file
+          const blob = await new Promise<Blob | null>((resolve) =>
+            canvas.toBlob(resolve, "image/png")
+          );
+          if (!blob) return;
 
-        const file = new File([blob], "attendance_qr.png", {
-          type: "image/png",
-        });
-
-        // Share
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            files: [file], // ✅ ONLY IMAGE
+          const file = new File([blob], "attendance_qr.png", {
+            type: "image/png",
           });
-        } else {
-          alert("Sharing not supported on this device");
-        }
-      }
-    };
 
-    img.src = "data:image/svg+xml;base64," + btoa(svgData);
-  } catch (err) {
-    console.error("Sharing failed", err);
-  }
-};
+          // Share
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+  files: [file],
+  title: "Attendance QR",
+  text: "Scan QR to mark attendance\nhttps://smartattendancecs.onrender.com",
+});
+
+
+          } else {
+            alert("Sharing not supported on this device");
+          }
+        }
+      };
+
+      img.src = "data:image/svg+xml;base64," + btoa(svgData);
+    } catch (err) {
+      console.error("Sharing failed", err);
+    }
+  };
 
 
   const shareAttendanceText = () => {
