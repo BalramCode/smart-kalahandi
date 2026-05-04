@@ -47,7 +47,7 @@ const TeacherDashboard = () => {
 
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => navigate("/teacher/create-session")}
+              onClick={() => navigate("/teacher/batches")}
               className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95"
             >
               <Plus size={20} />
