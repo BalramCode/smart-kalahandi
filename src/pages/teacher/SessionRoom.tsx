@@ -75,10 +75,10 @@ const Session = () => {
           // Share
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
-  files: [file],
-  title: "Attendance QR",
-  text: "Scan QR to mark attendance\nhttps://smartattendancecs.onrender.com",
-});
+              files: [file],
+              title: "Attendance QR",
+              text: "Scan QR to mark attendance\nhttps://smartattendancecs.onrender.com",
+            });
 
 
           } else {
@@ -378,7 +378,7 @@ const Session = () => {
                         </div>
                         <div>
                           <p className="font-bold text-slate-800">{record.studentId?.name || "Student"}</p>
-                          <p className="text-xs text-slate-400">{new Date(record.markedAt).toLocaleTimeString()}</p>
+                          <p className="text-xs text-slate-400">{record.studentId?.rollNo || "No Roll No"}</p>
                         </div>
                       </div>
                       <CheckCircle2 size={18} className="text-emerald-500" />

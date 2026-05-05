@@ -165,10 +165,10 @@ const StudentDashboard = () => {
               <div className="space-y-3">
                 {loading ? (
                   <p className="text-xs text-slate-400">Loading...</p>
-                ) : dashboard?.logs?.length === 0 ? (
+                ) : !dashboard?.logs || dashboard.logs.length === 0 ? (
                   <p className="text-xs text-slate-400">No attendance yet</p>
                 ) : (
-                  dashboard.logs.map((log: any) => (
+                  dashboard?.logs?.map((log: any) => (
                     <div
                       key={log._id}
                       className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-transparent hover:border-white/10 transition-all"

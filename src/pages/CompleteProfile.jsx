@@ -11,8 +11,8 @@ export default function CompleteProfile() {
   const navigate = useNavigate();
 
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
 
     if (!rollNo.trim()) {
@@ -82,6 +82,30 @@ const handleSubmit = async (e) => {
                 />
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
                   <UserCheck size={20} />
+                </div>
+              </div>
+              <div className="flex gap-4 mb-6">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Start Year</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 2024"
+                    value={startYear}
+                    onChange={(e) => setStartYear(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+                    required
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">End Year</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 2027"
+                    value={endYear}
+                    onChange={(e) => setEndYear(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all"
+                    required
+                  />
                 </div>
               </div>
             </div>
