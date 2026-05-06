@@ -1,10 +1,26 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { ChevronRight, GraduationCap, BookOpen, Clock, ArrowLeft } from "lucide-react";
+import { useState, useEffect } from "react";
+import api from "../../services/api";
 
 const Semesters = () => {
   const navigate = useNavigate();
-  const { batchId } = useParams();
+  // const { batchId } = useParams();
+ const { batchId } = useParams();
+const [batchName, setBatchName] = useState("");
 
+useEffect(() => {
+  const fetchBatch = async () => {
+    try {
+      const res = await api.get(`/batches/${batchId}`);
+      setBatchName(res.data.name);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (batchId) fetchBatch();
+}, [batchId]);
   const semesters = [
     { id: "sem1", name: "Semester 1", subjects: 6, status: "Completed" },
     { id: "sem2", name: "Semester 2", subjects: 5, status: "Completed" },
@@ -17,7 +33,7 @@ const Semesters = () => {
   return (
     <div className="w-full h-full flex-1 p-6 md:p-10 bg-slate-50/50 overflow-y-auto">
       {/* Top Navigation / Breadcrumbs */}
-      <button 
+      <button
         onClick={() => navigate(-1)}
         className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors mb-6 group"
       >
@@ -34,7 +50,10 @@ const Semesters = () => {
           <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Semesters</h1>
         </div>
         <p className="text-slate-500">
-          Managing curriculum for <span className="font-semibold text-slate-700">Batch {batchId}</span>
+          Managing curriculum for{" "}
+          <span className="font-semibold text-slate-700">
+            Batch {batchName || "Loading..."}
+          </span>
         </p>
       </div>
 
@@ -50,17 +69,16 @@ const Semesters = () => {
               <div className="p-3 bg-slate-50 text-slate-600 group-hover:bg-indigo-50 group-hover:text-indigo-600 rounded-xl transition-colors">
                 <BookOpen size={24} />
               </div>
-              <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md ${
-                sem.status === "In Progress" ? "bg-amber-100 text-amber-600" : 
-                sem.status === "Completed" ? "bg-emerald-100 text-emerald-600" : 
-                "bg-slate-100 text-slate-500"
-              }`}>
+              <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md ${sem.status === "In Progress" ? "bg-amber-100 text-amber-600" :
+                sem.status === "Completed" ? "bg-emerald-100 text-emerald-600" :
+                  "bg-slate-100 text-slate-500"
+                }`}>
                 {sem.status}
               </span>
             </div>
 
             <h2 className="text-xl font-bold text-slate-800 mb-1">{sem.name}</h2>
-            
+
             <div className="flex items-center gap-3 text-slate-500 text-sm mb-6">
               <span className="flex items-center gap-1">
                 <Clock size={14} /> 4 Months
@@ -79,7 +97,7 @@ const Semesters = () => {
                   +30
                 </div>
               </div>
-              
+
               <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner">
                 <ChevronRight size={18} />
               </div>

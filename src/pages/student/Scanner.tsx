@@ -58,9 +58,9 @@ const Scanner = () => {
           setError(err.response?.data?.message || "Attendance failed");
           setIsProcessing(false);
           scannedRef.current = false;   // 🔥 allow retry
-          setTimeout(() => {
-            startScanner();
-          }, 2000); // ⏱️ 2 seconds delay
+          // setTimeout(() => {
+          //   startScanner();
+          // }, 2000); // ⏱️ 2 seconds delay
         }
       },
       () => {
@@ -119,15 +119,12 @@ const Scanner = () => {
 
 
   useEffect(() => {
-    setTimeout(() => {
-      startScanner();
-    }, 2000); // ⏱️ 2 seconds delay
-
-    return () => {
-      stopScanner(); // 🔥 ALWAYS use this
-    };
-
-  }, []);
+  // We only want the cleanup (stop) logic here.
+  // Do NOT call startScanner() on mount.
+  return () => {
+    stopScanner();
+  };
+}, []);
 
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -186,26 +183,50 @@ const Scanner = () => {
         <div className="bg-white/5 border border-white/10 backdrop-blur-3xl rounded-[3rem] p-6 shadow-2xl overflow-hidden relative">
 
           {/* Glass Overlay for scanner */}
-          <div className="relative aspect-square overflow-hidden rounded-[2.5rem] bg-slate-950 group border border-white/10">
-            <div id="reader" className="w-full h-full" />
+      <div className="relative aspect-square overflow-hidden rounded-[2.5rem] bg-slate-950 group border border-white/10">
+  <div id="reader" className="w-full h-full" />
 
-            {isScannerStarted && !isProcessing && (
-              <div className="absolute inset-0 pointer-events-none z-10">
-                <div className="w-full h-[3px] bg-gradient-to-r from-transparent via-indigo-400 to-transparent shadow-[0_0_20px_#818cf8] animate-scan-move" />
-                <div className="absolute inset-10 border border-white/10 rounded-3xl opacity-20" />
-              </div>
-            )}
+  {/* 1. Idle State: Show this when nothing is happening */}
+  {!isScannerStarted && !isProcessing && (
+    <div className="absolute inset-0 flex flex-col items-center justify-center z-10 px-8 text-center bg-slate-950">
+      <div className="mb-6 p-4 bg-indigo-500/10 rounded-full">
+        <Smartphone size={40} className="text-indigo-400 opacity-50" />
+      </div>
+      <h3 className="text-sm font-bold text-white mb-2 uppercase tracking-widest">
+        Ready to Scan
+      </h3>
+      <p className="text-[11px] text-slate-400 leading-relaxed uppercase tracking-tight">
+        Tap <span className="text-indigo-400">"Open Camera"</span> to scan QR <br /> 
+        or <span className="text-indigo-400">"From Gallery"</span> to upload
+      </p>
+      
+      {/* Decorative corners for the 'target' look */}
+      <div className="absolute top-10 left-10 w-8 h-8 border-t-2 border-l-2 border-white/10 rounded-tl-xl" />
+      <div className="absolute top-10 right-10 w-8 h-8 border-t-2 border-r-2 border-white/10 rounded-tr-xl" />
+      <div className="absolute bottom-10 left-10 w-8 h-8 border-b-2 border-l-2 border-white/10 rounded-bl-xl" />
+      <div className="absolute bottom-10 right-10 w-8 h-8 border-b-2 border-r-2 border-white/10 rounded-br-xl" />
+    </div>
+  )}
 
-            {isProcessing && (
-              <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center z-20">
-                <div className="relative">
-                  <RefreshCw size={56} className="text-indigo-500 animate-spin" />
-                  <div className="absolute inset-0 blur-xl bg-indigo-500/20 animate-pulse" />
-                </div>
-                <p className="mt-6 text-xs font-black tracking-[0.4em] text-white">VALIDATING</p>
-              </div>
-            )}
-          </div>
+  {/* 2. Active Scanning State */}
+  {isScannerStarted && !isProcessing && (
+    <div className="absolute inset-0 pointer-events-none z-10">
+      <div className="w-full h-[3px] bg-gradient-to-r from-transparent via-indigo-400 to-transparent shadow-[0_0_20px_#818cf8] animate-scan-move" />
+      <div className="absolute inset-10 border border-white/10 rounded-3xl opacity-20" />
+    </div>
+  )}
+
+  {/* 3. Processing State */}
+  {isProcessing && (
+    <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-md flex flex-col items-center justify-center z-20">
+      <div className="relative">
+        <RefreshCw size={56} className="text-indigo-500 animate-spin" />
+        <div className="absolute inset-0 blur-xl bg-indigo-500/20 animate-pulse" />
+      </div>
+      <p className="mt-6 text-xs font-black tracking-[0.4em] text-white">VALIDATING</p>
+    </div>
+  )}
+</div>
 
           <div className="grid grid-cols-2 gap-4 mt-8">
             <label className="flex flex-col items-center justify-center gap-3 bg-slate-800/40 hover:bg-slate-800/60 py-6 rounded-[2rem] border border-white/5 cursor-pointer transition-all active:scale-95 group">
