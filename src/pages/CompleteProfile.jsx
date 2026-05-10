@@ -8,6 +8,8 @@ import { toast } from "sonner"; // Assuming you use sonner for toasts like in Lo
 export default function CompleteProfile() {
   const [rollNo, setRollNo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [startYear, setStartYear] = useState("");
+  const [endYear, setEndYear] = useState("");
   const navigate = useNavigate();
 
 
