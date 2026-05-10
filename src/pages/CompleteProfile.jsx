@@ -8,8 +8,8 @@ import { toast } from "sonner"; // Assuming you use sonner for toasts like in Lo
 export default function CompleteProfile() {
   const [rollNo, setRollNo] = useState("");
   const [loading, setLoading] = useState(false);
-  const [startYear, setStartYear] = useState("");
-  const [endYear, setEndYear] = useState("");
+  // const [startYear, setStartYear] = useState("");
+  // const [endYear, setEndYear] = useState("");
   const navigate = useNavigate();
 
 
@@ -86,7 +86,7 @@ export default function CompleteProfile() {
                   <UserCheck size={20} />
                 </div>
               </div>
-              <div className="flex gap-4 mb-6">
+              {/* <div className="flex gap-4 mb-6">
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-slate-700 mb-2">Start Year</label>
                   <input
@@ -109,7 +109,7 @@ export default function CompleteProfile() {
                     required
                   />
                 </div>
-              </div>
+              </div> */}
             </div>
 
             <button
