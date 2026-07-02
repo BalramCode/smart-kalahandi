@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { GoogleLogin } from '@react-oauth/google';
-import axios from 'axios';
 
 import api from "../services/api";
 
@@ -17,24 +16,24 @@ const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rollNo, setRollNo] = useState(""); // New State for Roll Number
+  const [teacherKey, setTeacherKey] = useState("");
   const [role, setRole] = useState<UserRole>("student");
 
   const { register, isLoading, setUser } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log("Sending:", { name, email, password, role, rollNo });
     e.preventDefault();
 
     // Validation: Only require rollNo if user is a student
-    if (!name || !email || !password || (role === "student" && !rollNo)) {
+    if (!name || !email || !password || (role === "student" && !rollNo) || (role === "teacher" && !teacherKey)) {
       toast.error("Please fill all required fields");
       return;
     }
 
     try {
       // Assuming you update your useAuth register function to accept rollNo as the 5th argument
-      await register(name, email, password, role, rollNo);
+      await register(name, email, password, role, rollNo, teacherKey);
 
       toast.success("Account created!");
       navigate(role === "teacher" ? "/teacher/dashboard" : "/student/dashboard");
@@ -94,6 +93,20 @@ const Register = () => {
             </div>
           )}
 
+          {role === "teacher" && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <Label htmlFor="teacherKey">Teacher Registration Key</Label>
+              <Input
+                id="teacherKey"
+                type="password"
+                placeholder="Enter registration key"
+                value={teacherKey}
+                onChange={(e) => setTeacherKey(e.target.value)}
+                className="h-11 rounded-xl bg-background border-primary/20 focus:border-primary"
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" placeholder="you@mmu.ac.in" value={email} onChange={(e) => setEmail(e.target.value)} className="h-11 rounded-xl bg-background" />
@@ -112,9 +125,15 @@ const Register = () => {
           <GoogleLogin
             onSuccess={async (credentialResponse) => {
               try {
+                if (role === "teacher" && !teacherKey) {
+                  toast.error("Teacher registration key is required");
+                  return;
+                }
+
                 const res = await api.post("/auth/google", {
                   token: credentialResponse.credential,
                   role: role,
+                  ...(role === "teacher" && { teacherKey }),
                 });
 
                 const data = res.data.data;

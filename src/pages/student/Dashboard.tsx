@@ -168,35 +168,43 @@ const StudentDashboard = () => {
                 ) : !dashboard?.logs || dashboard.logs.length === 0 ? (
                   <p className="text-xs text-slate-400">No attendance yet</p>
                 ) : (
-                  dashboard?.logs?.map((log: any) => (
-                    <div
-                      key={log._id}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-transparent hover:border-white/10 transition-all"
-                    >
+                  dashboard?.logs?.map((log: any) => {
+                    const loggedAt = new Date(log.markedAt);
+                    const subjectName = log.sessionId?.subject?.name || "Unknown Subject";
+                    const topicName = log.sessionId?.subject?.fullName || "No topic available";
+
+                    return (
                       <div
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${log.status === "present"
-                          ? "bg-emerald-500/10 text-emerald-500"
-                          : "bg-rose-500/10 text-rose-500"
-                          }`}
+                        key={log._id}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-transparent hover:border-white/10 transition-all"
                       >
-                        {log.status === "present" ? (
-                          <CheckCircle2 size={16} />
-                        ) : (
-                          <XCircle size={16} />
-                        )}
-                      </div>
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${log.status === "present"
+                            ? "bg-emerald-500/10 text-emerald-500"
+                            : "bg-rose-500/10 text-rose-500"
+                            }`}
+                        >
+                          {log.status === "present" ? (
+                            <CheckCircle2 size={16} />
+                          ) : (
+                            <XCircle size={16} />
+                          )}
+                        </div>
 
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-white truncate">
-                          {log.sessionId?.subject?.name || "Unknown Subject"}
-
-                        </p>
-                        <p className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">
-                          {new Date(log.markedAt).toLocaleTimeString()}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-white truncate">
+                            {subjectName}
+                          </p>
+                          <p className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">
+                            {topicName}
+                          </p>
+                          <p className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">
+                            {loggedAt.toLocaleDateString()} - {loggedAt.toLocaleTimeString()}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
 
               </div>

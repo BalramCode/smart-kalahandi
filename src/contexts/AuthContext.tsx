@@ -23,7 +23,8 @@ interface AuthContextType {
     email: string,
     password: string,
     role: UserRole,
-    rollNo?: string
+    rollNo?: string,
+    teacherKey?: string
   ) => Promise<any>;
 }
 
@@ -44,7 +45,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     password: string,
     role: UserRole,
-    rollNo?: string
+    rollNo?: string,
+    teacherKey?: string
   ) => {
     try {
       setIsLoading(true);
@@ -55,6 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
         role,
         ...(role === "student" && { rollNo }),
+        ...(role === "teacher" && { teacherKey }),
       });
 
       const { token, user: userData } = res.data.data;
