@@ -3,10 +3,22 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Plus, X, BookOpen, PlayCircle, MoreVertical, Users, User } from "lucide-react"; // Added User icon
 import api from "../../services/api";
 
+interface TeacherRef {
+  _id: string;
+  name: string;
+  email?: string;
+}
+
 interface Subject {
   _id: string;
   name: string;
   fullName: string;
+  teacher?: TeacherRef | string | null;
+}
+
+interface ActiveSession {
+  _id: string;
+  teacherId?: TeacherRef | string | null;
 }
 
 const Subjects = () => {
@@ -14,27 +26,26 @@ const Subjects = () => {
   const { batchId, semId } = useParams();
 
   // State Management
-  const [user, setUser] = useState<{ name: string } | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newSubject, setNewSubject] = useState({ name: "", fullName: "" });
-  const [sessionStatuses, setSessionStatuses] = useState<{ [key: string]: boolean }>({});
+  const [activeSessions, setActiveSessions] = useState<{ [key: string]: ActiveSession | null }>({});
   const [checkingSessions, setCheckingSessions] = useState(true);
 
-  // 1. Load Teacher Data from LocalStorage
-  useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error("Failed to parse user data");
-      }
+  const getTeacherName = (subject: Subject, session?: ActiveSession | null) => {
+    if (subject.teacher && typeof subject.teacher === "object" && subject.teacher.name) {
+      return subject.teacher.name;
     }
-  }, []);
 
-  // 2. Load Subjects and their Session Statuses
+    if (session?.teacherId && typeof session.teacherId === "object" && session.teacherId.name) {
+      return session.teacherId.name;
+    }
+
+    return "Unassigned";
+  };
+
+  // Load Subjects and their Session Statuses
   useEffect(() => {
     const fetchData = async () => {
       setCheckingSessions(true);
@@ -43,18 +54,18 @@ const Subjects = () => {
         const subjectsData = res.data;
         setSubjects(subjectsData);
 
-        const statuses: { [key: string]: boolean } = {};
+        const sessions: { [key: string]: ActiveSession | null } = {};
         await Promise.all(
           subjectsData.map(async (sub: any) => {
             try {
               const statusRes = await api.get(`/session/active/${sub._id}`);
-              statuses[sub._id] = !!statusRes.data?.data?.session;
+              sessions[sub._id] = statusRes.data?.data?.session || null;
             } catch (e) {
-              statuses[sub._id] = false;
+              sessions[sub._id] = null;
             }
           })
         );
-        setSessionStatuses(statuses);
+        setActiveSessions(sessions);
       } catch (err) {
         console.error("Fetch failed", err);
       } finally {
@@ -147,7 +158,9 @@ const Subjects = () => {
             </div>
           ) : (
             subjects.map((sub, index) => {
-              const hasSession = sessionStatuses[sub._id];
+              const activeSession = activeSessions[sub._id];
+              const hasSession = !!activeSession;
+              const teacherName = getTeacherName(sub, activeSession);
               return (
                 <div
                   key={sub._id}
@@ -159,7 +172,7 @@ const Subjects = () => {
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${hasSession ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
                       <User size={16} />
                     </div>
-                    <span className="text-sm font-bold text-slate-700 truncate">{user?.name || "Teacher"}</span>
+                    <span className="text-sm font-bold text-slate-700 truncate">{teacherName}</span>
                   </div>
 
                   {/* Column 2: Subject */}
