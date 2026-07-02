@@ -5,7 +5,9 @@ import {
   ArrowLeft, RefreshCw, Smartphone
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import api from "../../services/api";
+import { getInstallationId } from "@/lib/installationId";
 
 const Scanner = () => {
   const [scanResult, setScanResult] = useState<null | "SUCCESS">(null);
@@ -41,11 +43,13 @@ const Scanner = () => {
       async (pos) => {
         try {
           const { latitude, longitude } = pos.coords;
+          const installationId = getInstallationId();
 
           await api.post("/attendance/mark", {
             qrToken: token,
             lat: latitude,
             lng: longitude,
+            installationId,
           });
 
           setScanResult("SUCCESS");
@@ -55,7 +59,15 @@ const Scanner = () => {
           }, 1200);
 
         } catch (err: any) {
-          setError(err.response?.data?.message || "Attendance failed");
+          const message = err.response?.data?.message || "Attendance failed";
+          const status = err.response?.status;
+
+          // Device-already-used: show a toast and do NOT allow retry
+          if (status === 409) {
+            toast.error(message);
+          }
+
+          setError(message);
           setIsProcessing(false);
           scannedRef.current = false;   // 🔥 allow retry
           // setTimeout(() => {
