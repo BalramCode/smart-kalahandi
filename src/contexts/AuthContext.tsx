@@ -10,7 +10,10 @@ export interface User {
   email: string;
   role: UserRole;
   rollNo?: string;
+  rollNumber?: string;
   department?: string;
+  onboardingCompleted?: boolean;
+  teacherRegistrationKeyVerified?: boolean;
 }
 
 interface AuthContextType {
@@ -29,6 +32,41 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+export const hasStudentRollNumber = (user: User | null) => {
+  const roll = user?.rollNo || user?.rollNumber || "";
+  return typeof roll === "string" && roll.trim().length > 0;
+};
+
+export const isStudentOnboardingComplete = (user: User | null) =>
+  !!user &&
+  user.role === "student" &&
+  hasStudentRollNumber(user) &&
+  user.onboardingCompleted !== false;
+
+export const isTeacherOnboardingComplete = (user: User | null) =>
+  !!user &&
+  user.role === "teacher" &&
+  user.teacherRegistrationKeyVerified !== false &&
+  user.onboardingCompleted !== false;
+
+export const getOnboardingPathForUser = (user: User | null) => {
+  if (!user) return null;
+  if (user.role === "student" && !isStudentOnboardingComplete(user)) {
+    return "/complete-profile";
+  }
+  if (user.role === "teacher" && !isTeacherOnboardingComplete(user)) {
+    return "/complete-teacher-profile";
+  }
+  return null;
+};
+
+export const getDefaultRouteForUser = (user: User | null) => {
+  const onboardingPath = getOnboardingPathForUser(user);
+  if (onboardingPath) return onboardingPath;
+  if (!user) return "/login";
+  return user.role === "teacher" ? "/teacher/dashboard" : "/student/dashboard";
+};
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);

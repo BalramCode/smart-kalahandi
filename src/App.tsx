@@ -19,12 +19,17 @@ import SessionRoom from "./pages/teacher/SessionRoom"
 import Subjects from "./pages/teacher/Subjects"
 import CompleteProfile from "./pages/CompleteProfile";
 import FullScreenLoader from "@/components/FullScreenLoader";
+import CompleteTeacherProfile from "./pages/CompleteTeacherProfile";
 
 const queryClient = new QueryClient();
 
 
 // ✅ Protected Route (uses localStorage, NOT useAuth)
-import { useAuth } from "@/contexts/AuthContext";
+import {
+  getDefaultRouteForUser,
+  getOnboardingPathForUser,
+  useAuth,
+} from "@/contexts/AuthContext";
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, isLoading } = useAuth();
@@ -35,15 +40,15 @@ if (isLoading) return <FullScreenLoader />;
   if (!user) {
     return <Navigate to="/login" replace />;
   }
+
+  const onboardingPath = getOnboardingPathForUser(user);
+  if (onboardingPath) {
+    return <Navigate to={onboardingPath} replace />;
+  }
   
 
   if (role && user.role !== role) {
-    return (
-      <Navigate
-        to={user.role === "teacher" ? "/teacher/dashboard" : "/student/scanner"}
-        replace
-      />
-    );
+    return <Navigate to={getDefaultRouteForUser(user)} replace />;
   }
 
   return children;
@@ -57,12 +62,27 @@ if (isLoading) return <FullScreenLoader />;
 
 
   if (user) {
-    return (
-      <Navigate
-        to={user.role === "teacher" ? "/teacher/dashboard" : "/student/scanner"}
-        replace
-      />
-    );
+    return <Navigate to={getDefaultRouteForUser(user)} replace />;
+  }
+
+  return children;
+};
+
+const OnboardingRoute = ({ children, role }) => {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return <FullScreenLoader />;
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (role && user.role !== role) {
+    return <Navigate to={getDefaultRouteForUser(user)} replace />;
+  }
+
+  const onboardingPath = getOnboardingPathForUser(user);
+  if (!onboardingPath) {
+    return <Navigate to={getDefaultRouteForUser(user)} replace />;
   }
 
   return children;
@@ -85,7 +105,22 @@ const App = () => (
           <Route path="/login" element={<AuthRedirect><Login /></AuthRedirect>} />
           <Route path="/register" element={<AuthRedirect><Register /></AuthRedirect>} />
           
-          <Route path="/complete-profile" element={<CompleteProfile />} />
+          <Route
+            path="/complete-profile"
+            element={
+              <OnboardingRoute role="student">
+                <CompleteProfile />
+              </OnboardingRoute>
+            }
+          />
+          <Route
+            path="/complete-teacher-profile"
+            element={
+              <OnboardingRoute role="teacher">
+                <CompleteTeacherProfile />
+              </OnboardingRoute>
+            }
+          />
 
           {/* Teacher */}
           {/* Teacher */}

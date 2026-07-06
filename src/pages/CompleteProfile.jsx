@@ -4,6 +4,7 @@ import api from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { UserCheck, GraduationCap, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner"; // Assuming you use sonner for toasts like in Login
+import { useAuth } from "../contexts/AuthContext";
 
 export default function CompleteProfile() {
   const [rollNo, setRollNo] = useState("");
@@ -11,6 +12,7 @@ export default function CompleteProfile() {
   // const [startYear, setStartYear] = useState("");
   // const [endYear, setEndYear] = useState("");
   const navigate = useNavigate();
+  const { setUser } = useAuth();
 
 
   const handleSubmit = async (e) => {
@@ -27,11 +29,12 @@ export default function CompleteProfile() {
       const res = await api.post("/auth/complete-profile", { rollNo });
 
       localStorage.setItem("token", res.data.data.token);
+      setUser(res.data.data.user);
 
       toast.success("Profile verified successfully!");
 
       setTimeout(() => {
-        navigate("/student/dashboard");
+        navigate("/student/dashboard", { replace: true });
       }, 1500);
 
     } catch (err) {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth, UserRole } from "@/contexts/AuthContext";
+import { getDefaultRouteForUser, useAuth, UserRole } from "@/contexts/AuthContext";
 import CollegeBranding from "@/components/CollegeBranding";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
@@ -45,11 +45,7 @@ const Login = () => {
 
         toast.success("Welcome back!");
 
-        navigate(
-          data.user.role === "teacher"
-            ? "/teacher/dashboard"
-            : "/student/dashboard"
-        );
+        navigate(getDefaultRouteForUser(data.user), { replace: true });
       } else {
         toast.error(res.data.message);
       }
@@ -151,17 +147,13 @@ const Login = () => {
                 setUser(data.user);
 
                 // 🔥 student → complete profile
-                if (data.needsProfileCompletion) {
-                  navigate("/complete-profile");
+                if (data.needsProfileCompletion || data.needsTeacherRegistrationKey) {
+                  navigate(getDefaultRouteForUser(data.user), { replace: true });
                   return;
                 }
 
                 // ✅ redirect
-                navigate(
-                  data.user.role === "teacher"
-                    ? "/teacher/dashboard"
-                    : "/student/dashboard"
-                );
+                navigate(getDefaultRouteForUser(data.user), { replace: true });
 
               } catch (err) {
                 console.error(err);

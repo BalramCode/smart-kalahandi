@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth, UserRole } from "@/contexts/AuthContext";
+import { getDefaultRouteForUser, useAuth, UserRole } from "@/contexts/AuthContext";
 import CollegeBranding from "@/components/CollegeBranding";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { Button } from "@/components/ui/button";
@@ -33,10 +33,10 @@ const Register = () => {
 
     try {
       // Assuming you update your useAuth register function to accept rollNo as the 5th argument
-      await register(name, email, password, role, rollNo, teacherKey);
+      const res = await register(name, email, password, role, rollNo, teacherKey);
 
       toast.success("Account created!");
-      navigate(role === "teacher" ? "/teacher/dashboard" : "/student/dashboard");
+      navigate(getDefaultRouteForUser(res.data.user), { replace: true });
     } catch (err: any) {
       console.log(err);
       toast.error(err?.response?.data?.message || "Registration failed");
@@ -125,15 +125,9 @@ const Register = () => {
           <GoogleLogin
             onSuccess={async (credentialResponse) => {
               try {
-                if (role === "teacher" && !teacherKey) {
-                  toast.error("Teacher registration key is required");
-                  return;
-                }
-
                 const res = await api.post("/auth/google", {
                   token: credentialResponse.credential,
                   role: role,
-                  ...(role === "teacher" && { teacherKey }),
                 });
 
                 const data = res.data.data;
@@ -149,16 +143,12 @@ const Register = () => {
 
                 setUser(data.user);
 
-                if (data.needsProfileCompletion) {
-                  navigate("/complete-profile");
+                if (data.needsProfileCompletion || data.needsTeacherRegistrationKey) {
+                  navigate(getDefaultRouteForUser(data.user), { replace: true });
                   return;
                 }
 
-                navigate(
-                  data.user.role === "teacher"
-                    ? "/teacher/dashboard"
-                    : "/student/dashboard"
-                );
+                navigate(getDefaultRouteForUser(data.user), { replace: true });
 
               } catch (err) {
                 console.error(err);
