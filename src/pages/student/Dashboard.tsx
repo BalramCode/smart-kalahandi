@@ -18,6 +18,18 @@ const StudentDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
+  const getTeacherName = (subject: any, session?: any) => {
+    if (subject?.teacher && typeof subject.teacher === "object" && subject.teacher.name) {
+      return subject.teacher.name;
+    }
+
+    if (session?.teacherId && typeof session.teacherId === "object" && session.teacherId.name) {
+      return session.teacherId.name;
+    }
+
+    return "Unassigned";
+  };
+
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -173,6 +185,11 @@ const StudentDashboard = () => {
                     const subjectName = log.sessionId?.subject?.name || "Unknown Subject";
                     const topicName = log.sessionId?.subject?.fullName || "No topic available";
 
+                    const teacherName = getTeacherName(
+                      log.sessionId?.subject,
+                      log.sessionId
+                    );
+
                     return (
                       <div
                         key={log._id}
@@ -191,16 +208,29 @@ const StudentDashboard = () => {
                           )}
                         </div>
 
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-white truncate">
-                            {subjectName}
-                          </p>
-                          <p className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">
-                            {topicName}
-                          </p>
-                          <p className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">
-                            {loggedAt.toLocaleDateString()} - {loggedAt.toLocaleTimeString()}
-                          </p>
+                        <div className="flex-1 flex items-start justify-between gap-3 min-w-0">
+                          {/* Left */}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-white truncate">
+                              {subjectName}
+                            </p>
+
+                            <p className="text-[10px] text-slate-400 font-semibold truncate mt-0.5">
+                              {topicName}
+                            </p>
+
+                            
+                          </div>
+
+                          {/* Right */}
+                          <div className="shrink-0 text-right">
+                            <p className="text-[10px] text-indigo-400 font-bold whitespace-nowrap">
+                              Prof. {teacherName}
+                            </p>
+                            <p className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">
+                              {loggedAt.toLocaleDateString()} - {loggedAt.toLocaleTimeString()}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     );
