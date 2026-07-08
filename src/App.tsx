@@ -146,6 +146,9 @@ const App = () => (
 
             {/* Session Room (QR + attendance) */}
             <Route path="session/:subjectId" element={<SessionRoom />} />
+
+            {/* Session History */}
+            <Route path="sessions" element={<Sessions />} />
           </Route>
 
 

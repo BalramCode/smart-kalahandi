@@ -1,4 +1,4 @@
-import { LayoutDashboard, Layers, LogOut } from "lucide-react";
+import { History, LayoutDashboard, Layers, LogOut } from "lucide-react";
 
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 const items = [
   { title: "Dashboard", url: "/teacher/dashboard", icon: LayoutDashboard },
   { title: "Batches", url: "/teacher/batches", icon: Layers },
+  { title: "History", url: "/teacher/sessions", icon: History },
 ];
 
 

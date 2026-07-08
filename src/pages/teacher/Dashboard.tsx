@@ -104,7 +104,12 @@ const TeacherDashboard = () => {
                   <History size={20} className="text-indigo-600" />
                   <h3 className="font-black text-slate-800 text-lg uppercase tracking-tight">Recent Sessions</h3>
                 </div>
-                <button className="text-xs font-bold text-indigo-600 hover:underline">View History</button>
+                <button
+                  onClick={() => navigate("/teacher/sessions")}
+                  className="text-xs font-bold text-indigo-600 hover:underline"
+                >
+                  View History
+                </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
