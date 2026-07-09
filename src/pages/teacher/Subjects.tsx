@@ -135,7 +135,7 @@ const Subjects = () => {
             className="bg-slate-900 hover:bg-indigo-600 text-white px-5 py-2 rounded-xl text-sm font-bold transition-all shadow-lg active:scale-95 flex items-center gap-2"
           >
             <Plus size={18} strokeWidth={3} />
-            <span>New Subject</span>
+            <span>New Session</span>
           </button>
         </div>
       </nav>
@@ -192,12 +192,12 @@ const Subjects = () => {
                     <button
                       onClick={() => handleLaunchSession(sub._id)}
                       className={`flex-grow md:flex-grow-0 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${hasSession
-                          ? "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
-                          : "bg-slate-900 text-white hover:bg-indigo-600 shadow-md"
+                        ? "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
+                        : "bg-slate-900 text-white hover:bg-indigo-600 shadow-md"
                         }`}
                     >
                       {hasSession ? <Users size={14} /> : <PlayCircle size={14} />}
-                      {hasSession ? "See Attendance" : "Create Session"}
+                      {hasSession ? "See Attendance" : "Start Session"}
                     </button>
                     <button className="p-2 text-slate-300 hover:text-slate-600 transition-colors">
                       <MoreVertical size={18} />
@@ -267,7 +267,7 @@ const Subjects = () => {
                 type="submit"
                 className="w-full group mt-2 relative py-3.5 bg-slate-900 hover:bg-indigo-600 text-white rounded-2xl font-bold text-sm shadow-xl shadow-slate-200 hover:shadow-indigo-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
               >
-                <span>Commit to Ledger</span>
+                <span>Add Session</span>
                 <Plus size={16} className="group-hover:rotate-90 transition-transform" />
               </button>
             </form>

@@ -1,33 +1,34 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronRight, GraduationCap, BookOpen, Clock, ArrowLeft } from "lucide-react";
+import { ChevronRight, GraduationCap, ArrowLeft, Layout } from "lucide-react";
 import { useState, useEffect } from "react";
 import api from "../../services/api";
 
 const Semesters = () => {
   const navigate = useNavigate();
-  // const { batchId } = useParams();
- const { batchId } = useParams();
-const [batchName, setBatchName] = useState("");
+  const { batchId } = useParams();
+  const [batchName, setBatchName] = useState("");
 
-useEffect(() => {
-  const fetchBatch = async () => {
-    try {
-      const res = await api.get(`/batches/${batchId}`);
-      setBatchName(res.data.name);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  useEffect(() => {
+    const fetchBatch = async () => {
+      try {
+        const res = await api.get(`/batches/${batchId}`);
+        setBatchName(res.data.name);
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
-  if (batchId) fetchBatch();
-}, [batchId]);
+    if (batchId) fetchBatch();
+  }, [batchId]);
+
+  // Clean data structure
   const semesters = [
-    { id: "sem1", name: "Semester 1", subjects: 6, status: "Completed" },
-    { id: "sem2", name: "Semester 2", subjects: 5, status: "Completed" },
-    { id: "sem3", name: "Semester 3", subjects: 6, status: "In Progress" },
-    { id: "sem4", name: "Semester 4", subjects: 5, status: "Upcoming" },
-    { id: "sem5", name: "Semester 5", subjects: 4, status: "Upcoming" },
-    { id: "sem6", name: "Semester 6", subjects: 4, status: "Upcoming" },
+    { id: "sem1", name: "Semester 1" },
+    { id: "sem2", name: "Semester 2" },
+    { id: "sem3", name: "Semester 3" },
+    { id: "sem4", name: "Semester 4" },
+    { id: "sem5", name: "Semester 5" },
+    { id: "sem6", name: "Semester 6" },
   ];
 
   return (
@@ -35,21 +36,21 @@ useEffect(() => {
       {/* Top Navigation / Breadcrumbs */}
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors mb-6 group"
+        className="flex items-center gap-2 text-sm text-slate-500 hover:text-indigo-600 transition-colors mb-6 group"
       >
-        <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+        <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
         <span className="font-medium">Back to Batches</span>
       </button>
 
       {/* Header */}
-      <div className="mb-10">
+      <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-indigo-600 rounded-lg text-white">
-            <GraduationCap size={24} />
+          <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-md shadow-indigo-600/10">
+            <GraduationCap size={22} />
           </div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Semesters</h1>
+          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Semesters</h1>
         </div>
-        <p className="text-slate-500">
+        <p className="text-sm text-slate-500">
           Managing curriculum for{" "}
           <span className="font-semibold text-slate-700">
             Batch {batchName || "Loading..."}
@@ -57,58 +58,37 @@ useEffect(() => {
         </p>
       </div>
 
-      {/* Modern Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Stylish, Medium-Sized Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {semesters.map((sem) => (
           <div
             key={sem.id}
             onClick={() => navigate(`/teacher/batches/${batchId}/${sem.id}`)}
-            className="group relative bg-white border border-slate-200 rounded-2xl p-6 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 cursor-pointer"
+            className="group relative overflow-hidden bg-white border border-slate-200/80 rounded-2xl p-5 hover:border-indigo-400 hover:shadow-xl hover:shadow-indigo-500/5 transition-all duration-300 cursor-pointer flex flex-col justify-between min-h-[130px]"
           >
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-slate-50 text-slate-600 group-hover:bg-indigo-50 group-hover:text-indigo-600 rounded-xl transition-colors">
-                <BookOpen size={24} />
-              </div>
-              <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-md ${sem.status === "In Progress" ? "bg-amber-100 text-amber-600" :
-                sem.status === "Completed" ? "bg-emerald-100 text-emerald-600" :
-                  "bg-slate-100 text-slate-500"
-                }`}>
-                {sem.status}
-              </span>
+            {/* Subtle top-right decorative accent */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-indigo-500/5 to-transparent rounded-bl-full transition-all duration-300 group-hover:scale-110" />
+
+            {/* Icon Block */}
+            <div className="p-2.5 w-10 h-10 bg-slate-50 text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600 rounded-xl transition-all duration-300 flex items-center justify-center">
+              <Layout size={20} />
             </div>
 
-            <h2 className="text-xl font-bold text-slate-800 mb-1">{sem.name}</h2>
-
-            <div className="flex items-center gap-3 text-slate-500 text-sm mb-6">
-              <span className="flex items-center gap-1">
-                <Clock size={14} /> 4 Months
-              </span>
-              <span>•</span>
-              <span>{sem.subjects} Subjects</span>
-            </div>
-
-            <div className="flex items-center justify-between mt-auto">
-              <div className="flex -space-x-2">
-                {/* Visual "Student" Bubbles placeholder */}
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="w-7 h-7 rounded-full border-2 border-white bg-slate-200" />
-                ))}
-                <div className="w-7 h-7 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400">
-                  +30
-                </div>
+            {/* Title and Arrow Action */}
+            <div className="flex items-end justify-between mt-4">
+              <div>
+                <h2 className="text-lg font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                  {sem.name}
+                </h2>
+                <span className="text-xs text-slate-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  View Modules →
+                </span>
               </div>
 
-              <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-inner">
-                <ChevronRight size={18} />
+              <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white group-hover:scale-105 transition-all duration-300 shadow-sm">
+                <ChevronRight size={16} />
               </div>
             </div>
-
-            {/* Subtle Progress Bar for "In Progress" semester */}
-            {sem.status === "In Progress" && (
-              <div className="absolute bottom-0 left-0 w-full h-1 bg-slate-100 overflow-hidden rounded-b-2xl">
-                <div className="h-full bg-indigo-500 w-1/2 animate-pulse"></div>
-              </div>
-            )}
           </div>
         ))}
       </div>
