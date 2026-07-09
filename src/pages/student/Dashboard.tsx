@@ -65,7 +65,10 @@ const StudentDashboard = () => {
       {/* 1. Global Navigation - Responsive Name */}
       <nav className="sticky top-0 z-[100] bg-[#0F172A]/80 backdrop-blur-2xl border-b border-white/5 px-4 md:px-8 py-4">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3">
+          <div
+            onClick={() => navigate("/student/profile")}
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          >
             <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 p-[1.5px] shrink-0">
               <div className="w-full h-full rounded-full bg-[#0F172A] flex items-center justify-center">
                 <User size={16} className="text-indigo-400" />
@@ -81,9 +84,7 @@ const StudentDashboard = () => {
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
-            <button className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/5">
-              <Bell size={18} className="text-slate-400" />
-            </button>
+
             <button
               onClick={logout}
               className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-xl border border-rose-500/20 transition-all"
@@ -219,7 +220,7 @@ const StudentDashboard = () => {
                               {topicName}
                             </p>
 
-                            
+
                           </div>
 
                           {/* Right */}

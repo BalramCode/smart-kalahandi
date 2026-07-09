@@ -12,6 +12,7 @@ import QRSession from "./pages/teacher/QRSession";
 import Sessions from "./pages/teacher/Sessions";
 import Scanner from "./pages/student/Scanner";
 import StudentDashboard from "./pages/student/Dashboard";
+import StudentProfile from "./pages/student/Profile";
 import NotFound from "./pages/NotFound";
 import Batches from "./pages/teacher/Batches"
 import Semesters from "./pages/teacher/Semesters"
@@ -31,11 +32,10 @@ import {
   useAuth,
 } from "@/contexts/AuthContext";
 
-const ProtectedRoute = ({ children, role }) => {
+const ProtectedRoute = ({ children, role }: any) => {
   const { user, isLoading } = useAuth();
 
-if (isLoading) return <FullScreenLoader />;
-
+  if (isLoading) return <FullScreenLoader />;
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -56,10 +56,9 @@ if (isLoading) return <FullScreenLoader />;
 
 
 
-const AuthRedirect = ({ children }) => {
+const AuthRedirect = ({ children }: any) => {
   const { user, isLoading } = useAuth();
-if (isLoading) return <FullScreenLoader />;
-
+  if (isLoading) return <FullScreenLoader />;
 
   if (user) {
     return <Navigate to={getDefaultRouteForUser(user)} replace />;
@@ -68,7 +67,7 @@ if (isLoading) return <FullScreenLoader />;
   return children;
 };
 
-const OnboardingRoute = ({ children, role }) => {
+const OnboardingRoute = ({ children, role }: any) => {
   const { user, isLoading } = useAuth();
   if (isLoading) return <FullScreenLoader />;
 
@@ -123,7 +122,6 @@ const App = () => (
           />
 
           {/* Teacher */}
-          {/* Teacher */}
           <Route
             path="/teacher"
             element={
@@ -166,6 +164,14 @@ const App = () => (
             element={
               <ProtectedRoute role="student">
                 <StudentDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/student/profile"
+            element={
+              <ProtectedRoute role="student">
+                <StudentProfile />
               </ProtectedRoute>
             }
           />

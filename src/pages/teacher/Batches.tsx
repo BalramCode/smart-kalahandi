@@ -35,7 +35,7 @@ const Batches = () => {
     if (!startYear || !endYear) return;
 
     try {
-    const res = await api.post("/batches", {
+      const res = await api.post("/batches", {
         startYear,
         endYear,
       });
@@ -98,10 +98,10 @@ const Batches = () => {
               </div>
 
               <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-50">
-                <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
+                {/* <div className="flex items-center gap-2 text-slate-500 text-sm font-medium">
                   <Users size={16} />
-                  <span>{batch.studentCount || 0} Students</span> 
-                </div>
+                  <span>{batch.studentCount || 0} Students</span>
+                </div> */}
                 <div className="text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center text-sm font-semibold">
                   View Class &rarr;
                 </div>
