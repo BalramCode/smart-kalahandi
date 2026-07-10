@@ -86,39 +86,15 @@ const TeacherDashboard = () => {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {/* Left & Middle Box Block: Side-by-side on mobile, standalone blocks on laptop */}
-              <div className="grid grid-cols-2 gap-4 col-span-1 sm:col-span-2 sm:grid-cols-2 sm:gap-6">
-                {statCards
-                  .filter((s) => s.label.toLowerCase().includes("session") || s.label.toLowerCase().includes("enroll"))
-                  .map((s) => (
-                    <div key={s.label} className="bg-white p-5 sm:p-6 rounded-[2rem] border border-slate-100 shadow-sm transition-all flex flex-col justify-between">
-                      <div>
-                        <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-2xl ${s.bg} flex items-center justify-center mb-4`}>
-                          <s.icon className={`${s.color} h-5 w-5 sm:h-6 sm:w-6`} />
-                        </div>
-                        <p className="text-2xl sm:text-3xl font-black text-slate-900 leading-none">{s.value}</p>
-                      </div>
-                      <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">
-                        {s.label}
-                      </p>
-                    </div>
-                  ))}
-              </div>
-
-              {/* Right Box (Avg Attendance): Spans full width on mobile, standard third column on laptop */}
-              {statCards
-                .filter((s) => s.label.toLowerCase().includes("attend") || s.label.toLowerCase().includes("avg"))
-                .map((s) => (
-                  <div key={s.label} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm transition-all col-span-1 flex flex-col justify-between">
-                    <div>
-                      <div className={`h-12 w-12 rounded-2xl ${s.bg} flex items-center justify-center mb-4`}>
-                        <s.icon size={24} className={s.color} />
-                      </div>
-                      <p className="text-3xl font-black text-slate-900 leading-none">{s.value}</p>
-                    </div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">{s.label}</p>
+              {statCards.map((s) => (
+                <div key={s.label} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm transition-all">
+                  <div className={`h-12 w-12 rounded-2xl ${s.bg} flex items-center justify-center mb-4`}>
+                    <s.icon size={24} className={s.color} />
                   </div>
-                ))}
+                  <p className="text-3xl font-black text-slate-900 leading-none">{s.value}</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">{s.label}</p>
+                </div>
+              ))}
             </div>
 
             {/* Recent Sessions History */}
@@ -137,7 +113,7 @@ const TeacherDashboard = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {data?.recentSessions?.slice(0, 4).map((session: any) => (
+                {data.recentSessions.map((session: any) => (
                   <div key={session.id} className="group bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:border-indigo-200 transition-all relative overflow-hidden">
                     <div className="flex justify-between items-start mb-4">
                       <div className="px-3 py-1 bg-slate-50 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest border border-slate-100">
@@ -158,76 +134,56 @@ const TeacherDashboard = () => {
                       <div className="flex items-center gap-1.5">
                         <CheckCircle2 size={16} className="text-emerald-500" />
                         {/* Corrected Math: (Present / Total Students) * 100 */}
-                        {Math.min(100, Math.round((session.attendanceCount / (data?.stats?.enrolledStudents || 1)) * 100))}% Rate
+                        {Math.min(100, Math.round((session.attendanceCount / (data.stats.enrolledStudents || 1)) * 100))}% Rate
                       </div>
                     </div>
+
+                    {/* <button 
+                      onClick={() => navigate(`/teacher/session/${session.id}`)}
+                      className="w-full mt-6 flex items-center justify-center gap-2 bg-slate-50 text-slate-700 py-3 rounded-xl font-bold text-sm hover:bg-indigo-600 hover:text-white transition-all"
+                    >
+                      View Report <ArrowUpRight size={16} />
+                    </button> */}
                   </div>
                 ))}
-
-                {/* Fallback if list is empty */}
-                {(!data?.recentSessions || data.recentSessions.length === 0) && (
-                  <p className="text-slate-400 text-xs italic col-span-full text-center py-6">No recent sessions found.</p>
-                )}
               </div>
             </section>
           </div>
+
           {/* RIGHT: Live Feed */}
           <div className="lg:col-span-4 space-y-8">
-            <section className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden h-fit border border-white/5">
-
-              {/* Header */}
+            <section className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden h-fit">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                  <h3 className="font-bold uppercase text-xs tracking-widest text-indigo-300">
-                    Recent Attendance
-                  </h3>
+                  <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                  <h3 className="font-bold uppercase text-xs tracking-widest text-indigo-300">Recent Attendance</h3>
                 </div>
               </div>
 
-              {/* Scrollable Feed Container */}
-              <div className="space-y-6 max-h-[420px] overflow-y-auto pr-1 scrollbar-none">
-                {data?.recentActivity?.length > 0 ? (
+              <div className="space-y-6">
+                {data.recentActivity.length > 0 ? (
                   data.recentActivity.map((act: any, i: number) => (
-                    <div
-                      key={act.id || i}
-                      className="flex items-center justify-between group cursor-pointer p-1 rounded-xl hover:bg-white/[0.02] transition-colors duration-200"
-                    >
+                    <div key={i} className="flex items-center justify-between group">
                       <div className="flex items-center gap-4">
-                        {/* Avatar Icon */}
-                        <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center font-black text-xs text-indigo-300 border border-white/5 transition-transform duration-300 group-hover:scale-105 group-hover:bg-indigo-500/30">
-                          {act?.studentName?.charAt(0) || "?"}
+                        <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center font-black text-xs text-indigo-300 border border-white/5">
+                          {act.studentName.charAt(0)}
                         </div>
-
-                        {/* Student Metadata */}
                         <div>
-                          <p className="text-sm font-bold text-white group-hover:text-indigo-200 transition-colors duration-200">
-                            {act?.studentName || "Unknown Student"}
-                          </p>
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-                            {act?.timeAgo}
-                          </p>
+                          <p className="text-sm font-bold text-white">{act.studentName}</p>
+                          <p className="text-[10px] text-slate-500 font-bold uppercase">{act.timeAgo}</p>
                         </div>
                       </div>
-
-                      {/* Status Indicator */}
-                      <CheckCircle2
-                        size={16}
-                        className="text-emerald-400 transition-transform duration-300 group-hover:scale-110"
-                      />
+                      <CheckCircle2 size={16} className="text-emerald-400" />
                     </div>
                   ))
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <p className="text-slate-500 text-xs italic">No recent logs found.</p>
-                  </div>
+                  <p className="text-slate-500 text-xs text-center py-4 italic">No recent logs found.</p>
                 )}
               </div>
 
-              {/* Action Button */}
-              {/* <button className="w-full mt-8 py-3 rounded-xl border border-white/10 text-white font-bold text-xs uppercase tracking-widest hover:bg-white/5 active:scale-[0.98] transition-all duration-200">
+              <button className="w-full mt-8 py-3 rounded-xl border border-white/10 text-white font-bold text-xs uppercase tracking-widest hover:bg-white/5 transition-all">
                 Full Activity Log
-              </button> */}
+              </button>
             </section>
           </div>
         </div>
