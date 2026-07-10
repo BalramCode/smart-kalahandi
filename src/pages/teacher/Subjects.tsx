@@ -103,13 +103,20 @@ const Subjects = () => {
 
       try {
         const pos = await getPosition();
-        const { latitude, longitude } = pos.coords;
+        const { latitude, longitude, accuracy } = pos.coords;
+
+        if (accuracy > 100) {
+            alert(`Your GPS accuracy is poor (${Math.round(accuracy)}m). Please connect to Wi-Fi or move to an area with better signal and try again.`);
+            return;
+        }
 
         // 3. Create session with valid location
         const createRes = await api.post("/session/create", { 
           subject: id,
           lat: latitude,
-          lng: longitude
+          lng: longitude,
+          accuracy,
+          device: /Mobi|Android/i.test(navigator.userAgent) ? "Mobile" : "Desktop"
         });
         
         if (createRes.data?.data?.session) {
