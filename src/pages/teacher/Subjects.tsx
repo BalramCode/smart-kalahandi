@@ -78,17 +78,59 @@ const Subjects = () => {
 
   const handleLaunchSession = async (id: string) => {
     try {
+      // 1. Check if there's already an active session
       const res = await api.get(`/session/active/${id}`);
       if (res.data?.data?.session) {
         navigate(`/teacher/session/${id}`);
-      } else {
-        const createRes = await api.post("/session/create", { subject: id });
+        return;
+      }
+
+      // 2. Request location before creating
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+      }
+
+      const getPosition = (): Promise<GeolocationPosition> => {
+        return new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          });
+        });
+      };
+
+      try {
+        const pos = await getPosition();
+        const { latitude, longitude } = pos.coords;
+
+        // 3. Create session with valid location
+        const createRes = await api.post("/session/create", { 
+          subject: id,
+          lat: latitude,
+          lng: longitude
+        });
+        
         if (createRes.data?.data?.session) {
           navigate(`/teacher/session/${id}`);
         }
+      } catch (geoError: any) {
+        if (geoError.code === 1) { // PERMISSION_DENIED
+          alert("Location permission denied. Please allow location access to create a session.");
+        } else if (geoError.code === 3) { // TIMEOUT
+          alert("Location request timed out. Please check your GPS and try again.");
+        } else {
+          alert("Unable to retrieve location. Please ensure your GPS is enabled.");
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Launch failed", err);
+      if (err.response?.data?.message) {
+        alert(err.response.data.message);
+      } else {
+        alert("An error occurred while launching the session.");
+      }
     }
   };
 
